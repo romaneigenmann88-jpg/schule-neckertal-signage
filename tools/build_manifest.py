@@ -65,8 +65,8 @@ def main():
     ap.add_argument("--slides-rel", default="slides",
                     help="Relativer Ordner der Folien im Manifest (z. B. 'slides/<version>' "
                          "für CDN-sichere, versionierte URLs)")
-    ap.add_argument("--source-ctag", default="",
-                    help="cTag der Quell-PPTX (für Änderungserkennung im Workflow)")
+    ap.add_argument("--source-hash", default="",
+                    help="Hash der gerenderten Folien (für Änderungserkennung im Workflow)")
     args = ap.parse_args()
 
     with open(args.config, encoding="utf-8") as f:
@@ -101,7 +101,7 @@ def main():
     manifest = {
         "groupId": config["groupId"],
         "version": version,
-        "sourceCTag": args.source_ctag,
+        "sourceHash": args.source_hash,
         "defaultSlideDurationSeconds": default,
         "schedule": config.get("schedule", {}),
         "baseLayer": {"type": "renderedPowerPoint", "slides": slides},

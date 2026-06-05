@@ -22,3 +22,4 @@ Thumbs.db
 __pycache__/
 *.pyc
 /render/font-check/
+/gtest/

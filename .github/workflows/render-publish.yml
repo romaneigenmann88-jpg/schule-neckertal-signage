@@ -1,30 +1,28 @@
 name: Render & Publish
 
-# Holt die PowerPoint je Gruppe aus SharePoint (Microsoft Graph), rendert sie zu
-# PNG, erzeugt manifest.json und veroeffentlicht alles ins oeffentliche
-# Pages-Repo, das der Pi abruft.
+# Holt je Gruppe das geteilte Google Slides als PDF (Rendering, korrekte
+# Schriften von Google) und als PPTX (nur fuer die Notizen/Dauer), erzeugt
+# manifest.json und veroeffentlicht alles auf GitHub Pages DIESES Repos.
 #
-# Trigger:
-#  - workflow_dispatch / push: immer rendern (manuell bzw. Konfig-Aenderung)
-#  - schedule: nur rendern, wenn sich eine PPTX geaendert hat (cTag-Vergleich),
-#    um GitHub-Actions-Minuten zu sparen.
+# Keine Secrets: Google-Export ist oeffentlich, Pages-Push laeuft ueber den
+# automatischen GITHUB_TOKEN. Aenderungserkennung ueber den Hash der Folien.
 
 on:
   workflow_dispatch:
-  repository_dispatch:
-    types: [sharepoint-change]
   schedule:
-    - cron: '*/30 * * * *'
+    - cron: '*/5 * * * *'      # oeffentliches Repo = unbegrenzte Minuten
   push:
     paths:
       - 'groups/**'
       - 'tools/build_manifest.py'
       - 'tools/normalize_slides.py'
-      - 'tools/fetch_pptx.py'
       - '.github/workflows/render-publish.yml'
 
+permissions:
+  contents: write               # fuer den Push auf gh-pages
+
 env:
-  PAGES_BASE: https://romaneigenmann88-jpg.github.io/schule-neckertal-signage-published
+  PAGES_BASE: https://romaneigenmann88-jpg.github.io/schule-neckertal-signage
 
 jobs:
   render-publish:
@@ -33,105 +31,66 @@ jobs:
       - name: Repository auschecken
         uses: actions/checkout@v4
 
-      - name: Aenderungspruefung (cTag)
-        id: check
-        env:
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+      - name: poppler + python-pptx installieren
         run: |
-          set -e
-          proceed=false
-          # push / workflow_dispatch: immer rendern.
-          # schedule / repository_dispatch (Logic App): cTag-Vergleich entscheidet.
-          case "${{ github.event_name }}" in
-            schedule|repository_dispatch) ;;
-            *) proceed=true ;;
-          esac
-          for dir in groups/*/; do
-            gid=$(basename "$dir")
-            [ -f "${dir}config.json" ] || continue
-            siteId=$(python3 -c "import json;print(json.load(open('${dir}config.json')).get('source',{}).get('siteId',''))")
-            filePath=$(python3 -c "import json;print(json.load(open('${dir}config.json')).get('source',{}).get('filePath',''))")
-            [ -n "$siteId" ] && [ -n "$filePath" ] || continue
-            live=$(python3 tools/fetch_pptx.py --site-id "$siteId" --file-path "$filePath" --metadata-only)
-            pub=$(curl -s "${PAGES_BASE}/groups/$gid/manifest.json?n=$RANDOM$RANDOM" \
-                  | python3 -c "import sys,json;print(json.load(sys.stdin).get('sourceCTag',''))" 2>/dev/null || echo "")
-            echo "$gid: live='$live' publiziert='$pub'"
-            if [ "$live" != "$pub" ]; then proceed=true; fi
-          done
-          echo "proceed=$proceed" >> "$GITHUB_OUTPUT"
-          echo "Rendern/Veroeffentlichen: $proceed"
-
-      - name: LibreOffice, poppler, Schriften und python-pptx installieren
-        if: steps.check.outputs.proceed == 'true'
-        run: |
-          set -e
           sudo apt-get update
-          echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
-          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
-            libreoffice poppler-utils fontconfig fonts-comfortaa ttf-mscorefonts-installer || true
-          python3 -m pip install --quiet python-pptx fonttools
-          mkdir -p "$HOME/.fonts"
-          # Caveat (variabel) + korrekt benannte 'Caveat SemiBold' erzeugen
-          curl -fsSL "https://github.com/google/fonts/raw/main/ofl/caveat/Caveat%5Bwght%5D.ttf" -o /tmp/Caveat.ttf
-          cp /tmp/Caveat.ttf "$HOME/.fonts/Caveat.ttf"
-          python3 tools/make_caveat_semibold.py /tmp/Caveat.ttf "$HOME/.fonts/CaveatSemiBold.ttf"
-          fc-cache -f
-          echo "=== Caveat-Schriften ==="; fc-list | grep -i caveat || echo "(keine gefunden)"
+          sudo apt-get install -y poppler-utils
+          python3 -m pip install --quiet python-pptx
 
       - name: Alle Gruppen rendern und Manifeste erzeugen
-        if: steps.check.outputs.proceed == 'true'
-        env:
-          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
-          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+        id: render
         run: |
           set -e
           rm -rf publish && mkdir -p publish
           : > publish/.nojekyll
-          printf '%s\n' '<!doctype html><meta charset=utf-8><title>Schule Neckertal Signage</title><h1>Signage – veröffentlichte Inhalte</h1><p>Gruppen unter <code>/groups/&lt;groupId&gt;/manifest.json</code></p>' > publish/index.html
+          printf '%s\n' '<!doctype html><meta charset=utf-8><title>Schule Neckertal Signage</title><h1>Signage</h1><p>Gruppen unter <code>/groups/&lt;groupId&gt;/manifest.json</code></p>' > publish/index.html
           VERSION=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           SAFEVER="${VERSION//:/-}"
-          echo "Version: $VERSION (Ordner: $SAFEVER)"
+          changed=false
           for dir in groups/*/; do
             gid=$(basename "$dir")
-            [ -f "${dir}config.json" ] || { echo "Ueberspringe $gid (keine config.json)"; continue; }
+            [ -f "${dir}config.json" ] || continue
+            gid_src=$(python3 -c "import json;print(json.load(open('${dir}config.json')).get('source',{}).get('googleSlidesId',''))")
+            [ -n "$gid_src" ] || { echo "Ueberspringe $gid (keine googleSlidesId)"; continue; }
             echo "::group::Gruppe $gid"
-            siteId=$(python3 -c "import json;print(json.load(open('${dir}config.json')).get('source',{}).get('siteId',''))")
-            filePath=$(python3 -c "import json;print(json.load(open('${dir}config.json')).get('source',{}).get('filePath',''))")
-            ctag=""
-            if [ -n "$siteId" ] && [ -n "$filePath" ]; then
-              echo "Hole PPTX aus SharePoint: $filePath"
-              ctag=$(python3 tools/fetch_pptx.py --site-id "$siteId" --file-path "$filePath" --output "${dir}source.pptx")
-            fi
-            [ -f "${dir}source.pptx" ] || { echo "Ueberspringe $gid (keine source.pptx)"; echo "::endgroup::"; continue; }
             work=$(mktemp -d)
-            soffice --headless --convert-to pdf --outdir "$work" "${dir}source.pptx"
-            pdf=$(ls "$work"/*.pdf | head -1)
+            echo "Hole Google-Export (PDF + PPTX) ..."
+            curl -sL -o "$work/g.pdf"  "https://docs.google.com/presentation/d/$gid_src/export/pdf"
+            curl -sL -o "$work/g.pptx" "https://docs.google.com/presentation/d/$gid_src/export/pptx"
             slidesdir="publish/groups/$gid/slides/$SAFEVER"
             mkdir -p "$slidesdir"
-            pdftoppm -png -scale-to-x 1920 -scale-to-y -1 "$pdf" "$slidesdir/slide"
+            pdftoppm -png -scale-to-x 1920 -scale-to-y -1 "$work/g.pdf" "$slidesdir/slide"
             python3 tools/normalize_slides.py "$slidesdir"
+            # Hash der gerenderten Folien (stabil bei unveraendertem Inhalt)
+            hash=$(cat "$slidesdir"/*.png | sha256sum | cut -d' ' -f1)
+            pub=$(curl -s "${PAGES_BASE}/groups/$gid/manifest.json?n=$RANDOM$RANDOM" \
+                  | python3 -c "import sys,json;print(json.load(sys.stdin).get('sourceHash',''))" 2>/dev/null || echo "")
+            echo "$gid: hash=$hash publiziert=$pub"
+            [ "$hash" != "$pub" ] && changed=true
             python3 tools/build_manifest.py \
               --config "${dir}config.json" \
-              --pptx "${dir}source.pptx" \
+              --pptx "$work/g.pptx" \
               --slides-dir "$slidesdir" \
               --output "publish/groups/$gid/manifest.json" \
               --version "$VERSION" \
               --slides-rel "slides/$SAFEVER" \
-              --source-ctag "$ctag"
+              --source-hash "$hash"
             echo "::endgroup::"
           done
-          echo "=== Veroeffentlichte Struktur ==="
-          find publish -type f | sort
+          # push / workflow_dispatch: immer veroeffentlichen; schedule: nur bei Aenderung
+          proceed=false
+          case "${{ github.event_name }}" in
+            schedule) [ "$changed" = "true" ] && proceed=true ;;
+            *) proceed=true ;;
+          esac
+          echo "proceed=$proceed" >> "$GITHUB_OUTPUT"
+          echo "Aenderung: $changed -> veroeffentlichen: $proceed"
 
-      - name: Auf oeffentliches Pages-Repo veroeffentlichen
-        if: steps.check.outputs.proceed == 'true'
+      - name: Auf GitHub Pages veroeffentlichen
+        if: steps.render.outputs.proceed == 'true'
         uses: peaceiris/actions-gh-pages@v4
         with:
-          deploy_key: ${{ secrets.PAGES_DEPLOY_KEY }}
-          external_repository: romaneigenmann88-jpg/schule-neckertal-signage-published
+          github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: ./publish
           keep_files: false
