@@ -84,9 +84,12 @@ Nach dem Reboot erscheint automatisch die Slideshow im Vollbild.
 
 | Komponente | Ort |
 |---|---|
-| Player-Dateien | `/opt/school-signage/player/` |
+| App-Dateien (Player) | `/opt/school-signage/web/` (index.html, app.js, style.css) |
+| Aktive Inhalte | `/opt/school-signage/web/content` → Symlink auf `data/<version>/` |
+| Inhalts-Versionen | `/opt/school-signage/data/<version>/` (manifest.json + slides/) |
 | Konfiguration | `/opt/school-signage/config/device.json` |
-| Lokaler Server | systemd-Dienst `signage-server.service` (127.0.0.1:8099) |
+| Lokaler Server | systemd-Dienst `signage-server.service` (127.0.0.1:8099, liefert `web/`) |
+| Inhalts-Sync | `signage-sync.service` + `signage-sync.timer` (alle 5 Min) |
 | Kiosk-Autostart + Watchdog | `~/.config/labwc/autostart` |
 | Chromium-Policy | `/etc/chromium/policies/managed/signage.json` |
 | Täglicher Reboot (optional) | `signage-reboot.timer` |
@@ -95,10 +98,14 @@ Nach dem Reboot erscheint automatisch die Slideshow im Vollbild.
 
 ## 6. Betrieb & Wartung
 
-**Player-Inhalt aktualisieren** (neue Folien/Manifest nach `/opt/school-signage/player/`), dann Chromium neu laden – der Watchdog startet es automatisch wieder:
+**Inhalte aktualisieren** geschieht **automatisch**: Die PowerPoint wird (künftig in
+M365) bearbeitet, der GitHub-Workflow rendert und veröffentlicht, und der Pi holt
+die neue Version per `signage-sync.timer` (alle 5 Min). Der Player erkennt die neue
+Version und lädt selbständig neu. Manuell sofort synchronisieren:
 
 ```bash
-pkill chromium
+sudo systemctl start signage-sync.service
+journalctl -u signage-sync.service -e        # Sync-Log
 ```
 
 **Server-Status / Logs:**
