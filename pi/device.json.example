@@ -1,0 +1,7 @@
+{
+  "playerId": "OZN_SCREEN_01",
+  "groupId": "OZN_EINGANG",
+  "localUrl": "http://localhost:8099/",
+  "apiUrl": "",
+  "checkIntervalSeconds": 300
+}
