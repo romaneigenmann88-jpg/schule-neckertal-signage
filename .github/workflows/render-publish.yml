@@ -65,11 +65,14 @@ jobs:
           echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
           sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
             libreoffice poppler-utils fontconfig fonts-comfortaa ttf-mscorefonts-installer || true
+          python3 -m pip install --quiet python-pptx fonttools
           mkdir -p "$HOME/.fonts"
-          curl -fsSL "https://github.com/google/fonts/raw/main/ofl/caveat/Caveat%5Bwght%5D.ttf" \
-            -o "$HOME/.fonts/Caveat.ttf" || true
+          # Caveat (variabel) + korrekt benannte 'Caveat SemiBold' erzeugen
+          curl -fsSL "https://github.com/google/fonts/raw/main/ofl/caveat/Caveat%5Bwght%5D.ttf" -o /tmp/Caveat.ttf
+          cp /tmp/Caveat.ttf "$HOME/.fonts/Caveat.ttf"
+          python3 tools/make_caveat_semibold.py /tmp/Caveat.ttf "$HOME/.fonts/CaveatSemiBold.ttf"
           fc-cache -f
-          python3 -m pip install --quiet python-pptx
+          echo "=== Caveat-Schriften ==="; fc-list | grep -i caveat || echo "(keine gefunden)"
 
       - name: Alle Gruppen rendern und Manifeste erzeugen
         if: steps.check.outputs.proceed == 'true'
