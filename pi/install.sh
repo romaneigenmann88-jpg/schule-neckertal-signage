@@ -114,7 +114,7 @@ Description=Schule Neckertal Signage - Inhalts-Sync alle 5 Minuten
 
 [Timer]
 OnBootSec=1min
-OnUnitActiveSec=5min
+OnUnitActiveSec=3min
 Persistent=true
 
 [Install]
