@@ -19,7 +19,7 @@
     "theme": "transparent-dark"
   },
   "tickerLayer": {
-    "active": false,
-    "text": ""
+    "active": true,
+    "text": "TEST: Automatische Aktualisierung über GitHub funktioniert!"
   }
 }
