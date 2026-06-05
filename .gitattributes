@@ -1,0 +1,13 @@
+# Shell-Skripte und Player-/Konfig-Dateien immer mit LF (Unix) auschecken,
+# damit sie auf dem Raspberry Pi / Linux zuverlässig laufen.
+*.sh        text eol=lf
+*.js        text eol=lf
+*.json      text eol=lf
+*.css       text eol=lf
+*.html      text eol=lf
+autostart   text eol=lf
+
+# Binärdateien nicht anfassen
+*.png       binary
+*.pptx      binary
+*.pdf       binary
