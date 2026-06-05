@@ -27,29 +27,32 @@ html, body {
 .slide.active { opacity: 1; }
 
 /* ---------- Layer 2: Overlay Uhr/Datum ---------- */
-#overlay {
+.overlay-item {
   position: fixed;
   z-index: 10;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 2px;
-  padding: 10px 16px;
-  border-radius: 12px;
+  padding: 6px 14px;
+  border-radius: 10px;
   line-height: 1.1;
+  white-space: nowrap;
 }
-#overlay #clock { font-size: 3.2vw; font-weight: 700; }
-#overlay #date  { font-size: 1.4vw; font-weight: 400; opacity: 0.9; }
+#clock { font-size: 3.0vw; font-weight: 700; }
+#date  { font-size: 1.7vw; font-weight: 600; }
 
-/* Positionen */
-.pos-bottom-right { right: 2.5vw; bottom: 2.5vw; align-items: flex-end; }
-.pos-bottom-left  { left: 2.5vw;  bottom: 2.5vw; align-items: flex-start; }
-.pos-top-right    { right: 2.5vw; top: 2.5vw;    align-items: flex-end; }
-.pos-top-left     { left: 2.5vw;  top: 2.5vw;    align-items: flex-start; }
+/* Positionen (oben/unten × links/mitte/rechts) */
+.pos-top-left      { top: 2.2vw; left: 2.5vw; }
+.pos-top-center    { top: 2.2vw; left: 50%; transform: translateX(-50%); text-align: center; }
+.pos-top-right     { top: 2.2vw; right: 2.5vw; text-align: right; }
+.pos-bottom-left   { bottom: 2.5vw; left: 2.5vw; }
+.pos-bottom-center { bottom: 2.5vw; left: 50%; transform: translateX(-50%); text-align: center; }
+.pos-bottom-right  { bottom: 2.5vw; right: 2.5vw; text-align: right; }
 
-/* Themes */
-.theme-dark  { color: #fff; background: rgba(0, 0, 0, 0.45); backdrop-filter: blur(4px); }
-.theme-light { color: #111; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(4px); }
+/* Themes: Textfarbe + Hintergrund.
+   transparent-dark = transparenter Hintergrund, schwarze Schrift (mit dezentem
+   hellem Schein für Lesbarkeit auf dunklen Bildbereichen). */
+.theme-dark              { color: #fff; background: rgba(0, 0, 0, 0.45); backdrop-filter: blur(4px); }
+.theme-light             { color: #111; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(4px); }
+.theme-transparent-dark  { color: #000; background: transparent; text-shadow: 0 0 6px rgba(255, 255, 255, 0.6); }
+.theme-transparent-light { color: #fff; background: transparent; text-shadow: 0 0 6px rgba(0, 0, 0, 0.6); }
 
 /* ---------- Layer 3: Ticker ---------- */
 #ticker {

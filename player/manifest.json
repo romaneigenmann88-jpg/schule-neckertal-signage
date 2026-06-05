@@ -30,8 +30,9 @@
   "overlayLayer": {
     "showClock": true,
     "showDate": true,
-    "position": "bottom-right",
-    "theme": "dark"
+    "clockPosition": "top-right",
+    "datePosition": "top-center",
+    "theme": "transparent-dark"
   },
   "tickerLayer": {
     "active": false,

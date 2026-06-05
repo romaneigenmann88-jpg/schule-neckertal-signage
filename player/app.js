@@ -38,9 +38,10 @@ let scheduleActive = true;
 // ---------- DOM ----------
 const dom = {};
 function cacheDom() {
-  dom.slideA   = document.getElementById('slide-a');
-  dom.slideB   = document.getElementById('slide-b');
-  dom.overlay  = document.getElementById('overlay');
+  dom.slideA      = document.getElementById('slide-a');
+  dom.slideB      = document.getElementById('slide-b');
+  dom.overlayClock = document.getElementById('overlay-clock');
+  dom.overlayDate  = document.getElementById('overlay-date');
   dom.clock    = document.getElementById('clock');
   dom.date     = document.getElementById('date');
   dom.ticker   = document.getElementById('ticker');
@@ -164,16 +165,23 @@ function showNextSlide() {
 // ============================================================
 function applyOverlayConfig() {
   const o = manifest.overlayLayer || {};
-  if (!o.showClock && !o.showDate) { dom.overlay.hidden = true; return; }
+  const POSITIONS = ['top-left', 'top-center', 'top-right',
+                     'bottom-left', 'bottom-center', 'bottom-right'];
+  const THEMES = ['dark', 'light', 'transparent-dark', 'transparent-light'];
+  const theme = THEMES.includes(o.theme) ? o.theme : 'dark';
 
-  dom.overlay.hidden = false;
-  dom.clock.hidden = !o.showClock;
-  dom.date.hidden  = !o.showDate;
+  // Uhr und Datum werden unabhaengig voneinander positioniert.
+  positionOverlayItem(dom.overlayDate,  o.showDate,  o.datePosition,  'top-center', theme, POSITIONS);
+  positionOverlayItem(dom.overlayClock, o.showClock, o.clockPosition, 'top-right',  theme, POSITIONS);
+}
 
-  const pos = ['bottom-right', 'bottom-left', 'top-right', 'top-left'];
-  dom.overlay.className = '';
-  dom.overlay.classList.add('pos-' + (pos.includes(o.position) ? o.position : 'bottom-right'));
-  dom.overlay.classList.add(o.theme === 'light' ? 'theme-light' : 'theme-dark');
+function positionOverlayItem(el, show, position, fallbackPos, theme, allowedPositions) {
+  if (!el) return;
+  if (!show) { el.hidden = true; return; }
+  el.hidden = false;
+  el.className = 'overlay-item';
+  el.classList.add('pos-' + (allowedPositions.includes(position) ? position : fallbackPos));
+  el.classList.add('theme-' + theme);
 }
 
 function startClock() {

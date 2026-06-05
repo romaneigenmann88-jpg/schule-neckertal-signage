@@ -13,11 +13,9 @@
     <img id="slide-b" class="slide" alt="" />
   </div>
 
-  <!-- Layer 2: Systemoverlay (Uhr / Datum) -->
-  <div id="overlay" class="pos-bottom-right theme-dark" hidden>
-    <span id="clock"></span>
-    <span id="date"></span>
-  </div>
+  <!-- Layer 2: Systemoverlay – Uhr und Datum als getrennt positionierbare Elemente -->
+  <div id="overlay-date" class="overlay-item" hidden><span id="date"></span></div>
+  <div id="overlay-clock" class="overlay-item" hidden><span id="clock"></span></div>
 
   <!-- Layer 3: Ticker / Eilmeldung -->
   <div id="ticker" hidden><span id="ticker-text"></span></div>
