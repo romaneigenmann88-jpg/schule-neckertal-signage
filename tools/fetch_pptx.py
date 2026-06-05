@@ -40,7 +40,9 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--site-id", required=True)
     ap.add_argument("--file-path", required=True, help="Pfad relativ zur Standard-Dokumentbibliothek")
-    ap.add_argument("--output", required=True)
+    ap.add_argument("--output", help="Zieldatei (nicht nötig bei --metadata-only)")
+    ap.add_argument("--metadata-only", action="store_true",
+                    help="Nur den cTag holen (kein Download) – für günstige Änderungsprüfung")
     args = ap.parse_args()
 
     token = get_token()
@@ -51,11 +53,14 @@ def main():
     meta = graph(base, token)
     ctag = meta.get("cTag", "") or meta.get("eTag", "")
 
-    content = graph(base + ":/content", token, raw=True)
-    with open(args.output, "wb") as f:
-        f.write(content)
+    if not args.metadata_only:
+        if not args.output:
+            sys.exit("--output erforderlich (ohne --metadata-only)")
+        content = graph(base + ":/content", token, raw=True)
+        with open(args.output, "wb") as f:
+            f.write(content)
+        sys.stderr.write(f"PPTX geladen: {len(content)} Bytes aus SharePoint (cTag={ctag})\n")
 
-    sys.stderr.write(f"PPTX geladen: {len(content)} Bytes aus SharePoint (cTag={ctag})\n")
     print(ctag)   # stdout: nur der cTag (zum Abgreifen im Workflow)
 
 
