@@ -1,7 +1,8 @@
 {
   "playerId": "OZN_SCREEN_01",
-  "groupId": "OZN_EINGANG",
-  "localUrl": "http://localhost:8099/",
-  "apiUrl": "",
+  "manifestUrl": "https://romaneigenmann88-jpg.github.io/schule-neckertal-signage-published/groups/OZN_EINGANG/manifest.json",
+  "dataDir": "/opt/school-signage/data",
+  "webDir": "/opt/school-signage/web",
+  "keepVersions": 3,
   "checkIntervalSeconds": 300
 }

@@ -25,10 +25,18 @@ const fail = (...a) => console.error('[Player]', ts(), ...a);
 const params = new URLSearchParams(location.search);
 const IGNORE_SCHEDULE = params.get('ignoreSchedule') === '1';
 
-const MANIFEST_URL = 'manifest.json';
+// Inhalte (manifest + Folien) liegen unter content/. Auf dem Pi ist content/
+// ein Symlink, den der Sync-Agent atomar auf die aktuelle Version umschaltet.
+const CONTENT_BASE = 'content/';
+const MANIFEST_URL = CONTENT_BASE + 'manifest.json';
+
+// Wie oft der Player die lokale manifest-Version prüft (der Sync-Agent
+// aktualisiert content/ im Hintergrund; bei neuer Version lädt der Player neu).
+const VERSION_CHECK_INTERVAL_MS = 60 * 1000;
 
 // ---------- Zustand ----------
 let manifest = null;
+let loadedVersion = null;
 let slides = [];
 let currentIndex = -1;
 let activeLayerIsA = false;     // welche der beiden Bild-Ebenen ist gerade sichtbar
@@ -69,6 +77,9 @@ async function start() {
   // Zeitplan einmal pruefen und danach jede Minute erneut
   evaluateSchedule();
   setInterval(evaluateSchedule, 30 * 1000);
+
+  // Auf neue Inhalte vom Sync-Agent reagieren
+  startUpdateChecker();
 }
 
 // ============================================================
@@ -95,9 +106,28 @@ async function loadManifest() {
     return false;
   }
 
+  loadedVersion = manifest.version;
   log(`Manifest geladen. Version ${manifest.version}, ${slides.length} Folien, ` +
       `Standarddauer ${manifest.defaultSlideDurationSeconds}s.`);
   return true;
+}
+
+// Prüft periodisch, ob der Sync-Agent eine neue Version aktiviert hat,
+// und lädt die Seite dann neu (frische Folien + Manifest). Offline-tolerant.
+function startUpdateChecker() {
+  setInterval(async () => {
+    try {
+      const res = await fetch(MANIFEST_URL, { cache: 'no-store' });
+      if (!res.ok) return;
+      const m = await res.json();
+      if (m.version && m.version !== loadedVersion) {
+        log(`Neue Version erkannt (${m.version} statt ${loadedVersion}) – lade neu.`);
+        location.reload();
+      }
+    } catch (e) {
+      /* offline / Server kurz weg – ignorieren, lokale Anzeige läuft weiter */
+    }
+  }, VERSION_CHECK_INTERVAL_MS);
 }
 
 // Dauer einer Folie bestimmen: gueltiger Folienwert > Standarddauer.
@@ -121,7 +151,7 @@ function preloadSlides() {
     const img = new Image();
     img.onload  = () => resolve();
     img.onerror = () => { warn('Bild fehlt/defekt beim Vorladen:', s.file); resolve(); };
-    img.src = s.file;
+    img.src = CONTENT_BASE + s.file;
   }));
   return Promise.all(loaders).then(() => log('Folien vorgeladen.'));
 }
@@ -151,7 +181,7 @@ function showNextSlide() {
   showEl.onerror = () => {
     warn('Folie kann nicht angezeigt werden, wird übersprungen:', slide.file);
   };
-  showEl.src = slide.file;
+  showEl.src = CONTENT_BASE + slide.file;
   showEl.classList.add('active');
   hideEl.classList.remove('active');
   activeLayerIsA = !activeLayerIsA;
