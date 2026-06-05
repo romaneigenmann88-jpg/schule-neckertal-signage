@@ -79,21 +79,19 @@ def main():
     prs = Presentation(args.pptx)
     vis = visible_slides(prs)
 
-    # Gerenderte PNGs zählen und mit sichtbaren Folien abgleichen
-    pngs = sorted(fn for fn in os.listdir(args.slides_dir) if re.fullmatch(r"slide-\d+\.png", fn))
-    if len(pngs) != len(vis):
-        warnings.append(
-            f"Anzahl gerenderte Folien ({len(pngs)}) != sichtbare Folien laut PPTX ({len(vis)}). "
-            "Es wird die kleinere Anzahl verwendet."
-        )
-    count = min(len(pngs), len(vis))
-
+    # Das PDF (Google-Export) enthält ALLE Folien in Reihenfolge -> die PNGs
+    # slide-001..N entsprechen 1:1 den PPTX-Folien. Wir referenzieren je
+    # sichtbarer Folie genau das PNG mit ihrer Quell-Foliennummer (übersprungene
+    # Folien werden so korrekt ausgelassen).
     slides = []
-    for i in range(count):
-        src_no, notes = vis[i]
-        dur = parse_duration(notes, default, warnings, i + 1)
+    for src_no, notes in vis:
+        png_name = f"slide-{src_no:03d}.png"
+        if not os.path.isfile(os.path.join(args.slides_dir, png_name)):
+            warnings.append(f"Folie {src_no}: gerendertes Bild fehlt ({png_name}) – übersprungen.")
+            continue
+        dur = parse_duration(notes, default, warnings, src_no)
         slides.append({
-            "file": f"{args.slides_rel}/slide-{i + 1:03d}.png",
+            "file": f"{args.slides_rel}/{png_name}",
             "durationSeconds": dur,
             "sourceSlideNumber": src_no,
         })
