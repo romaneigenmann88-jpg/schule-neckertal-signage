@@ -12,7 +12,7 @@
     "friday":    { "active": true,  "from": "07:00", "until": "18:00" },
     "saturday":  { "active": false },
     "sunday":    { "active": false },
-    "offMode": "black_screen"
+    "offMode": "hdmi_off"
   },
   "overlayLayer": {
     "showClock": true,

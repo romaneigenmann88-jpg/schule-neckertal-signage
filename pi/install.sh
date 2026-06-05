@@ -63,6 +63,8 @@ cp "$REPO_ROOT/player/index.html" "$REPO_ROOT/player/app.js" "$REPO_ROOT/player/
 echo "[4/10] Sync-Agent ..."
 cp "$REPO_ROOT/pi/sync.py" "$INSTALL_DIR/bin/sync.py"
 chmod +x "$INSTALL_DIR/bin/sync.py"
+cp "$REPO_ROOT/pi/display-schedule.sh" "$INSTALL_DIR/bin/display-schedule.sh"
+chmod +x "$INSTALL_DIR/bin/display-schedule.sh"
 
 # ---------- 5. device.json (Konfiguration) ----------
 echo "[5/10] Konfiguration (device.json) ..."
@@ -115,6 +117,30 @@ Description=Schule Neckertal Signage - Inhalts-Sync alle 5 Minuten
 [Timer]
 OnBootSec=1min
 OnUnitActiveSec=3min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+# Bildschirm-Zeitsteuerung (HDMI-Off ausserhalb Betriebszeit, wenn offMode=hdmi_off)
+sudo tee /etc/systemd/system/signage-display.service >/dev/null <<UNIT
+[Unit]
+Description=Schule Neckertal Signage - HDMI-Zeitsteuerung
+After=graphical.target
+
+[Service]
+Type=oneshot
+User=$SIGNAGE_USER
+ExecStart=/bin/sh $INSTALL_DIR/bin/display-schedule.sh
+UNIT
+sudo tee /etc/systemd/system/signage-display.timer >/dev/null <<'UNIT'
+[Unit]
+Description=Schule Neckertal Signage - HDMI-Zeitsteuerung jede Minute
+
+[Timer]
+OnBootSec=40s
+OnUnitActiveSec=1min
 Persistent=true
 
 [Install]
@@ -196,6 +222,7 @@ fi
 
 # Jetzt den Sync-Timer aktivieren (künftige Aktualisierungen alle 5 Min)
 sudo systemctl enable --now signage-sync.timer >/dev/null
+sudo systemctl enable --now signage-display.timer >/dev/null
 
 echo
 echo "== Installation abgeschlossen =="
