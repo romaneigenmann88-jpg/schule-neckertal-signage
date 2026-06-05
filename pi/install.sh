@@ -22,7 +22,7 @@ PORT="${SIGNAGE_PORT:-8099}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/school-signage}"
 DAILY_REBOOT="${DAILY_REBOOT:-04:00}"              # "" = täglichen Reboot aus
 OUTPUT="${SIGNAGE_OUTPUT:-HDMI-A-1}"
-MANIFEST_URL="${MANIFEST_URL:-https://romaneigenmann88-jpg.github.io/schule-neckertal-signage-published/groups/OZN_EINGANG/manifest.json}"
+MANIFEST_URL="${MANIFEST_URL:-https://romaneigenmann88-jpg.github.io/schule-neckertal-signage/groups/OZN_EINGANG/manifest.json}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"

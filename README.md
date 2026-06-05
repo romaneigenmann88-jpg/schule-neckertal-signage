@@ -6,12 +6,12 @@ Eigenes, schlankes Digital-Signage-System (Ersatz für Yodeck) für die Schule N
 
 | Schicht | Lösung |
 |---|---|
-| **Folien bearbeiten** | PowerPoint Online (Microsoft 365) – Lehrpersonen bearbeiten je Bildschirmgruppe eine zentrale `.pptx` |
-| **Rendern + Ausliefern** | GitHub Actions (LibreOffice headless: PPTX → PNG + `manifest.json`) → GitHub Pages (statisch, HTTPS) |
-| **Anzeigen** | Raspberry-Pi-Player, *local-first*: spielt lokale Bilder ab, prüft alle 5 Min auf neue Version, läuft offline weiter |
-| **Code / Zusammenarbeit** | GitHub |
+| **Folien bearbeiten** | **Google Slides** – Lehrpersonen bearbeiten je Bildschirmgruppe eine geteilte Präsentation („Jeder mit Link: Betrachter") |
+| **Rendern + Ausliefern** | GitHub Actions holt den **öffentlichen Google-Export** (PDF rendern, PPTX nur für Notizen) → PNG + `manifest.json` → GitHub Pages |
+| **Anzeigen** | Raspberry-Pi-Player, *local-first*: spielt lokale Bilder ab, prüft alle 3 Min auf neue Version, läuft offline weiter |
+| **Code / Zusammenarbeit** | GitHub (öffentliches Repo) |
 
-Es gibt **keinen** eigenen, dauerhaft laufenden Server. Das Rendering läuft ereignis-/zeitgesteuert in GitHub Actions, die Auslieferung ist statisches Hosting.
+**Keine Secrets, keine Tokens, kein eigener Server.** Quelle (Google-Export) ist öffentlich abrufbar, der Pages-Push läuft über den automatischen `GITHUB_TOKEN`. Google rendert die Schriften (z. B. *Caveat*) korrekt – keine Schrift-Installation nötig. Auslösung zeitgesteuert (cron alle 5 Min, öffentliches Repo = unbegrenzte Minuten).
 
 ## Stand
 
