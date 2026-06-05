@@ -1,5 +1,9 @@
 {
   "groupId": "OZN_EINGANG",
+  "source": {
+    "siteId": "schuleneckertalch.sharepoint.com,4f625e0b-2246-4e3f-a402-23177f682548,0d72a19f-7ffe-4983-9295-8bfb6d7717c8",
+    "filePath": "OZN/OZN_Eingang.pptx"
+  },
   "defaultSlideDurationSeconds": 12,
   "schedule": {
     "monday":    { "active": true,  "from": "07:00", "until": "18:00" },

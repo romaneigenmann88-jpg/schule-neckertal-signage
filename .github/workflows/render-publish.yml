@@ -33,6 +33,10 @@ jobs:
           python3 -m pip install --quiet python-pptx
 
       - name: Alle Gruppen rendern und Manifeste erzeugen
+        env:
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
         run: |
           set -e
           rm -rf publish && mkdir -p publish
@@ -43,9 +47,16 @@ jobs:
           echo "Version: $VERSION (Ordner: $SAFEVER)"
           for dir in groups/*/; do
             gid=$(basename "$dir")
-            [ -f "${dir}source.pptx" ] || { echo "Ueberspringe $gid (keine source.pptx)"; continue; }
             [ -f "${dir}config.json" ] || { echo "Ueberspringe $gid (keine config.json)"; continue; }
             echo "::group::Gruppe $gid"
+            # PPTX aus SharePoint holen (falls in config.json eine Quelle hinterlegt ist)
+            siteId=$(python3 -c "import json;print(json.load(open('${dir}config.json')).get('source',{}).get('siteId',''))")
+            filePath=$(python3 -c "import json;print(json.load(open('${dir}config.json')).get('source',{}).get('filePath',''))")
+            if [ -n "$siteId" ] && [ -n "$filePath" ]; then
+              echo "Hole PPTX aus SharePoint: $filePath"
+              python3 tools/fetch_pptx.py --site-id "$siteId" --file-path "$filePath" --output "${dir}source.pptx"
+            fi
+            [ -f "${dir}source.pptx" ] || { echo "Ueberspringe $gid (keine source.pptx)"; echo "::endgroup::"; continue; }
             work=$(mktemp -d)
             soffice --headless --convert-to pdf --outdir "$work" "${dir}source.pptx"
             pdf=$(ls "$work"/*.pdf | head -1)
