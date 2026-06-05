@@ -1,0 +1,40 @@
+{
+  "groupId": "OZN_EINGANG",
+  "playerId": "OZN_SCREEN_01",
+  "version": "2026-06-05T10:30:00Z",
+  "defaultSlideDurationSeconds": 12,
+  "schedule": {
+    "monday":    { "active": true,  "from": "07:00", "until": "18:00" },
+    "tuesday":   { "active": true,  "from": "07:00", "until": "18:00" },
+    "wednesday": { "active": true,  "from": "07:00", "until": "18:00" },
+    "thursday":  { "active": true,  "from": "07:00", "until": "18:00" },
+    "friday":    { "active": true,  "from": "07:00", "until": "18:00" },
+    "saturday":  { "active": false },
+    "sunday":    { "active": false },
+    "offMode": "black_screen"
+  },
+  "baseLayer": {
+    "type": "renderedPowerPoint",
+    "slides": [
+      { "file": "slides/slide-001.png", "durationSeconds": 12, "sourceSlideNumber": 2 },
+      { "file": "slides/slide-002.png", "durationSeconds": 15, "sourceSlideNumber": 3 },
+      { "file": "slides/slide-003.png", "durationSeconds": 15, "sourceSlideNumber": 4 },
+      { "file": "slides/slide-004.png", "durationSeconds": 8,  "sourceSlideNumber": 7 },
+      { "file": "slides/slide-005.png", "durationSeconds": 12, "sourceSlideNumber": 8 },
+      { "file": "slides/slide-006.png", "durationSeconds": 10, "sourceSlideNumber": 9 },
+      { "file": "slides/slide-007.png", "durationSeconds": 12, "sourceSlideNumber": 10 },
+      { "file": "slides/slide-008.png", "durationSeconds": 12, "sourceSlideNumber": 11 },
+      { "file": "slides/slide-009.png", "durationSeconds": 12, "sourceSlideNumber": 12 }
+    ]
+  },
+  "overlayLayer": {
+    "showClock": true,
+    "showDate": true,
+    "position": "bottom-right",
+    "theme": "dark"
+  },
+  "tickerLayer": {
+    "active": false,
+    "text": ""
+  }
+}

@@ -1,7 +1,7 @@
 # Render-Ausgaben (werden in der Action erzeugt, nicht eingecheckt)
 out/
 *.pdf
-slide-*.png
+/render/test-output/
 
 # Temporaeres
 /tmp/

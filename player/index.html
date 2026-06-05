@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Schule Neckertal – Signage Player</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Layer 1: Hauptslideshow (zwei Bild-Ebenen fuer sanften Uebergang) -->
+  <div id="slideshow">
+    <img id="slide-a" class="slide" alt="" />
+    <img id="slide-b" class="slide" alt="" />
+  </div>
+
+  <!-- Layer 2: Systemoverlay (Uhr / Datum) -->
+  <div id="overlay" class="pos-bottom-right theme-dark" hidden>
+    <span id="clock"></span>
+    <span id="date"></span>
+  </div>
+
+  <!-- Layer 3: Ticker / Eilmeldung -->
+  <div id="ticker" hidden><span id="ticker-text"></span></div>
+
+  <!-- Black-Screen ausserhalb der Betriebszeit (Zeitplan) -->
+  <div id="blackscreen" hidden></div>
+
+  <!-- Diskrete Statusmeldung (nur wenn keine gueltigen Inhalte vorhanden sind) -->
+  <div id="message" hidden></div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>
