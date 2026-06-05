@@ -36,7 +36,9 @@ html, body {
   white-space: nowrap;
 }
 #clock { font-size: 4.4vw; font-weight: 700; }
-#date  { font-size: 2.4vw; font-weight: 600; }
+/* Datum etwas anheben, damit seine Grundlinie auf gleicher Höhe wie die der
+   grösseren Uhr sitzt (Ausgleich des unterschiedlichen Unterlängen-Leerraums). */
+#date  { font-size: 2.4vw; font-weight: 600; position: relative; top: -0.9vh; }
 
 /* Positionen (oben/unten × links/mitte/rechts).
    Die oberen Positionen werden an ihrer UNTERKANTE auf eine gemeinsame Linie
