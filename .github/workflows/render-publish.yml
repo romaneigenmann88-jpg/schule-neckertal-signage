@@ -11,6 +11,8 @@ name: Render & Publish
 
 on:
   workflow_dispatch:
+  repository_dispatch:
+    types: [sharepoint-change]
   schedule:
     - cron: '*/30 * * * *'
   push:
@@ -40,8 +42,12 @@ jobs:
         run: |
           set -e
           proceed=false
-          # Bei manuellem Start oder Push immer rendern
-          if [ "${{ github.event_name }}" != "schedule" ]; then proceed=true; fi
+          # push / workflow_dispatch: immer rendern.
+          # schedule / repository_dispatch (Logic App): cTag-Vergleich entscheidet.
+          case "${{ github.event_name }}" in
+            schedule|repository_dispatch) ;;
+            *) proceed=true ;;
+          esac
           for dir in groups/*/; do
             gid=$(basename "$dir")
             [ -f "${dir}config.json" ] || continue
