@@ -1,0 +1,101 @@
+{
+  "groupId": "OZN_EINGANG",
+  "version": "2026-06-05T19:36:21Z",
+  "sourceHash": "99efa177185e36033107dd20c483808a167cae82ff3369ef1a4cb938b8018e2c",
+  "defaultSlideDurationSeconds": 12,
+  "schedule": {
+    "monday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "tuesday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "wednesday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "thursday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "friday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "saturday": {
+      "active": false
+    },
+    "sunday": {
+      "active": false
+    },
+    "offMode": "black_screen"
+  },
+  "baseLayer": {
+    "type": "renderedPowerPoint",
+    "slides": [
+      {
+        "file": "slides/2026-06-05T19-36-21Z/slide-001.png",
+        "durationSeconds": 12,
+        "sourceSlideNumber": 2
+      },
+      {
+        "file": "slides/2026-06-05T19-36-21Z/slide-002.png",
+        "durationSeconds": 12,
+        "sourceSlideNumber": 3
+      },
+      {
+        "file": "slides/2026-06-05T19-36-21Z/slide-003.png",
+        "durationSeconds": 12,
+        "sourceSlideNumber": 4
+      },
+      {
+        "file": "slides/2026-06-05T19-36-21Z/slide-004.png",
+        "durationSeconds": 12,
+        "sourceSlideNumber": 7
+      },
+      {
+        "file": "slides/2026-06-05T19-36-21Z/slide-005.png",
+        "durationSeconds": 12,
+        "sourceSlideNumber": 8
+      },
+      {
+        "file": "slides/2026-06-05T19-36-21Z/slide-006.png",
+        "durationSeconds": 12,
+        "sourceSlideNumber": 9
+      },
+      {
+        "file": "slides/2026-06-05T19-36-21Z/slide-007.png",
+        "durationSeconds": 12,
+        "sourceSlideNumber": 10
+      },
+      {
+        "file": "slides/2026-06-05T19-36-21Z/slide-008.png",
+        "durationSeconds": 12,
+        "sourceSlideNumber": 11
+      },
+      {
+        "file": "slides/2026-06-05T19-36-21Z/slide-009.png",
+        "durationSeconds": 12,
+        "sourceSlideNumber": 12
+      }
+    ]
+  },
+  "overlayLayer": {
+    "showClock": true,
+    "showDate": true,
+    "clockPosition": "top-right",
+    "datePosition": "top-center",
+    "theme": "transparent-dark"
+  },
+  "tickerLayer": {
+    "active": false,
+    "text": ""
+  }
+}
