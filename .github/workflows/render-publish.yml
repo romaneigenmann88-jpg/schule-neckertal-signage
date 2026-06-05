@@ -39,7 +39,8 @@ jobs:
           : > publish/.nojekyll
           printf '%s\n' '<!doctype html><meta charset=utf-8><title>Schule Neckertal Signage</title><h1>Signage – veröffentlichte Inhalte</h1><p>Gruppen unter <code>/groups/&lt;groupId&gt;/manifest.json</code></p>' > publish/index.html
           VERSION=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-          echo "Version: $VERSION"
+          SAFEVER="${VERSION//:/-}"          # CDN-sichere, versionierte Folien-URLs
+          echo "Version: $VERSION (Ordner: $SAFEVER)"
           for dir in groups/*/; do
             gid=$(basename "$dir")
             [ -f "${dir}source.pptx" ] || { echo "Ueberspringe $gid (keine source.pptx)"; continue; }
@@ -48,15 +49,17 @@ jobs:
             work=$(mktemp -d)
             soffice --headless --convert-to pdf --outdir "$work" "${dir}source.pptx"
             pdf=$(ls "$work"/*.pdf | head -1)
-            mkdir -p "publish/groups/$gid/slides"
-            pdftoppm -png -scale-to-x 1920 -scale-to-y -1 "$pdf" "publish/groups/$gid/slides/slide"
-            python3 tools/normalize_slides.py "publish/groups/$gid/slides"
+            slidesdir="publish/groups/$gid/slides/$SAFEVER"
+            mkdir -p "$slidesdir"
+            pdftoppm -png -scale-to-x 1920 -scale-to-y -1 "$pdf" "$slidesdir/slide"
+            python3 tools/normalize_slides.py "$slidesdir"
             python3 tools/build_manifest.py \
               --config "${dir}config.json" \
               --pptx "${dir}source.pptx" \
-              --slides-dir "publish/groups/$gid/slides" \
+              --slides-dir "$slidesdir" \
               --output "publish/groups/$gid/manifest.json" \
-              --version "$VERSION"
+              --version "$VERSION" \
+              --slides-rel "slides/$SAFEVER"
             echo "::endgroup::"
           done
           echo "=== Veroeffentlichte Struktur ==="

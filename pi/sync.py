@@ -21,6 +21,7 @@ import fcntl
 import json
 import os
 import sys
+import time
 import urllib.request
 from datetime import datetime, timezone
 from urllib.parse import urljoin
@@ -73,9 +74,12 @@ def main():
         log("Ein anderer Sync-Lauf ist aktiv – übersprungen.")
         return 0
 
-    # 1) Remote-Manifest holen
+    # 1) Remote-Manifest holen (mit Cache-Buster gegen das Pages-CDN, damit neue
+    #    Versionen sofort sichtbar sind; die Folien-URLs sind versioniert und
+    #    daher ohnehin cache-sicher).
+    bust = ("&" if "?" in manifest_url else "?") + "t=" + str(int(time.time()))
     try:
-        raw = fetch(manifest_url)
+        raw = fetch(manifest_url + bust)
         remote = json.loads(raw)
     except Exception as e:
         log(f"Remote-Manifest nicht erreichbar ({e}). Aktuelle Version bleibt aktiv.")

@@ -62,6 +62,9 @@ def main():
     ap.add_argument("--slides-dir", required=True, help="Verzeichnis mit slide-XXX.png")
     ap.add_argument("--output", required=True)
     ap.add_argument("--version", default=None, help="Manifest-Version (Default: UTC-Zeitstempel)")
+    ap.add_argument("--slides-rel", default="slides",
+                    help="Relativer Ordner der Folien im Manifest (z. B. 'slides/<version>' "
+                         "für CDN-sichere, versionierte URLs)")
     args = ap.parse_args()
 
     with open(args.config, encoding="utf-8") as f:
@@ -88,7 +91,7 @@ def main():
         src_no, notes = vis[i]
         dur = parse_duration(notes, default, warnings, i + 1)
         slides.append({
-            "file": f"slides/slide-{i + 1:03d}.png",
+            "file": f"{args.slides_rel}/slide-{i + 1:03d}.png",
             "durationSeconds": dur,
             "sourceSlideNumber": src_no,
         })
