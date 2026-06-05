@@ -6,6 +6,9 @@ out/
 # Temporaeres
 /tmp/
 *.log
+/build-test/
+/publish/
+/render/pi-screenshots/
 
 # Original-PPTX im Wurzelordner (Arbeitskopie liegt unter render/samples/)
 /Info-Screen OZ Necker 2022.pptx
@@ -14,3 +17,7 @@ out/
 Thumbs.db
 .DS_Store
 .vscode/
+
+# Python
+__pycache__/
+*.pyc

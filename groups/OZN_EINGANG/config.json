@@ -1,0 +1,25 @@
+{
+  "groupId": "OZN_EINGANG",
+  "defaultSlideDurationSeconds": 12,
+  "schedule": {
+    "monday":    { "active": true,  "from": "07:00", "until": "18:00" },
+    "tuesday":   { "active": true,  "from": "07:00", "until": "18:00" },
+    "wednesday": { "active": true,  "from": "07:00", "until": "18:00" },
+    "thursday":  { "active": true,  "from": "07:00", "until": "18:00" },
+    "friday":    { "active": true,  "from": "07:00", "until": "18:00" },
+    "saturday":  { "active": false },
+    "sunday":    { "active": false },
+    "offMode": "black_screen"
+  },
+  "overlayLayer": {
+    "showClock": true,
+    "showDate": true,
+    "clockPosition": "top-right",
+    "datePosition": "top-center",
+    "theme": "transparent-dark"
+  },
+  "tickerLayer": {
+    "active": false,
+    "text": ""
+  }
+}

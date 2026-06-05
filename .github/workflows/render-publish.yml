@@ -1,0 +1,73 @@
+name: Render & Publish
+
+# Rendert pro Gruppe die PPTX zu PNG, erzeugt manifest.json und veroeffentlicht
+# das Ergebnis ins oeffentliche Output-Repo (GitHub Pages), das der Pi abruft.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'groups/**'
+      - 'tools/build_manifest.py'
+      - 'tools/normalize_slides.py'
+      - '.github/workflows/render-publish.yml'
+
+jobs:
+  render-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: LibreOffice, poppler, Schriften und python-pptx installieren
+        run: |
+          set -e
+          sudo apt-get update
+          echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            libreoffice poppler-utils fontconfig fonts-comfortaa ttf-mscorefonts-installer || true
+          mkdir -p "$HOME/.fonts"
+          curl -fsSL "https://github.com/google/fonts/raw/main/ofl/caveat/Caveat%5Bwght%5D.ttf" \
+            -o "$HOME/.fonts/Caveat.ttf" || true
+          fc-cache -f
+          python3 -m pip install --quiet python-pptx
+
+      - name: Alle Gruppen rendern und Manifeste erzeugen
+        run: |
+          set -e
+          rm -rf publish && mkdir -p publish
+          : > publish/.nojekyll
+          printf '%s\n' '<!doctype html><meta charset=utf-8><title>Schule Neckertal Signage</title><h1>Signage – veröffentlichte Inhalte</h1><p>Gruppen unter <code>/groups/&lt;groupId&gt;/manifest.json</code></p>' > publish/index.html
+          VERSION=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          echo "Version: $VERSION"
+          for dir in groups/*/; do
+            gid=$(basename "$dir")
+            [ -f "${dir}source.pptx" ] || { echo "Ueberspringe $gid (keine source.pptx)"; continue; }
+            [ -f "${dir}config.json" ] || { echo "Ueberspringe $gid (keine config.json)"; continue; }
+            echo "::group::Gruppe $gid"
+            work=$(mktemp -d)
+            soffice --headless --convert-to pdf --outdir "$work" "${dir}source.pptx"
+            pdf=$(ls "$work"/*.pdf | head -1)
+            mkdir -p "publish/groups/$gid/slides"
+            pdftoppm -png -scale-to-x 1920 -scale-to-y -1 "$pdf" "publish/groups/$gid/slides/slide"
+            python3 tools/normalize_slides.py "publish/groups/$gid/slides"
+            python3 tools/build_manifest.py \
+              --config "${dir}config.json" \
+              --pptx "${dir}source.pptx" \
+              --slides-dir "publish/groups/$gid/slides" \
+              --output "publish/groups/$gid/manifest.json" \
+              --version "$VERSION"
+            echo "::endgroup::"
+          done
+          echo "=== Veroeffentlichte Struktur ==="
+          find publish -type f | sort
+
+      - name: Auf oeffentliches Pages-Repo veroeffentlichen
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          deploy_key: ${{ secrets.PAGES_DEPLOY_KEY }}
+          external_repository: romaneigenmann88-jpg/schule-neckertal-signage-published
+          publish_branch: gh-pages
+          publish_dir: ./publish
+          keep_files: false
+          commit_message: "Render & Publish ${{ github.sha }}"
