@@ -1,0 +1,1426 @@
+KONZEPT UND PFLICHTENHEFT
+Schule Neckertal – Eigenes Digital-Signage-System mit SharePoint, SPFx und Raspberry-Pi-Player
+
+Version: 0.1 Konzeptphase
+Stand: 05.06.2026
+Autor / Auftraggeber: Roman Eigenmann
+Zielsystem: Microsoft 365 / SharePoint Online / SPFx / Raspberry Pi
+
+
+============================================================
+1. Ausgangslage
+============================================================
+
+Aktuell werden an der Schule Infobildschirme mit Yodeck, einem Raspberry Pi und einer freigegebenen Google-Slideshow betrieben. Diese Lösung funktioniert grundsätzlich gut, hat aber Einschränkungen bei der Skalierung, insbesondere weil in der Gratisversion nur ein Bildschirm enthalten ist.
+
+Ziel ist deshalb der Aufbau einer eigenen, schulnahen Digital-Signage-Infrastruktur innerhalb der bestehenden Microsoft-365-/SharePoint-Umgebung.
+
+Das neue System soll mehrere Schulen, mehrere Bildschirmgruppen und mehrere Raspberry-Pi-Player unterstützen. Lehrpersonen und Schulleitungen sollen die Inhalte weiterhin sehr einfach bearbeiten können. Die Bedienung soll ähnlich einfach bleiben wie heute mit einer zentralen Slideshow.
+
+Wichtig:
+Es soll kein komplexer Yodeck-Klon entstehen, sondern ein schlankes, stabiles und schulnahes System, das genau die benötigten Funktionen abdeckt.
+
+
+============================================================
+2. Grundidee
+============================================================
+
+Pro Bildschirmgruppe gibt es eine zentrale PowerPoint-Datei in SharePoint.
+
+Diese PowerPoint-Datei ist die redaktionelle Quelle. Lehrpersonen und Schulleitungen bearbeiten immer diese eine gemeinsame Präsentation direkt in PowerPoint Online. Sie sehen dadurch jederzeit den ganzen Inhalt, die Reihenfolge der Folien und können bestehende Folien direkt ändern, löschen, verschieben oder ergänzen.
+
+Der Raspberry-Pi-Player zeigt diese PowerPoint-Datei aber nicht live an. Stattdessen wird die PowerPoint-Datei nach Änderungen automatisch in einzelne Bilddateien gerendert. Diese gerenderten Bilder werden vom Player heruntergeladen, lokal gespeichert und offline-tolerant abgespielt.
+
+Der Player arbeitet lokal-first:
+- Er spielt immer lokale Inhalte ab.
+- Er fragt periodisch nach, ob eine neue Version verfügbar ist.
+- Er lädt neue Versionen vollständig herunter.
+- Erst wenn alle Dateien vollständig vorhanden sind, schaltet er auf die neue Version um.
+- Wenn Netzwerk oder Backend nicht erreichbar sind, läuft die zuletzt funktionierende Version weiter.
+
+Zusätzlich zur Slideshow gibt es Layer:
+
+Layer 1:
+Hauptslideshow aus der zentralen PowerPoint-Datei.
+
+Layer 2:
+Systemoverlay mit Uhrzeit, Datum, optional Logo oder Standort.
+
+Layer 3:
+Optionaler Ticker oder Eilmeldung, z. B. für besondere Hinweise.
+
+
+============================================================
+3. Ziele
+============================================================
+
+Das System soll:
+
+- mehrere Schulen / Standorte unterstützen
+- mehrere Bildschirmgruppen unterstützen
+- mehrere Raspberry-Pi-Player pro Bildschirmgruppe unterstützen
+- pro Bildschirmgruppe eine zentrale PowerPoint-Datei verwenden
+- PowerPoint-Dateien automatisch zu Bildern rendern
+- Player-Inhalte lokal auf dem Raspberry Pi cachen
+- bei Offline-Situationen stabil weiterlaufen
+- Änderungen innerhalb von ungefähr 5 Minuten auf die Player bringen
+- eine SPFx-basierte Admin- und Vorschauumgebung bieten
+- Player, Gruppen, IP-Adressen, Hostnamen, Zeiten und Status verwaltbar machen
+- Uhrzeit und Datum als Overlay anzeigen können
+- Bildschirm nachts und am Wochenende per HDMI-Off oder Black-Screen deaktivieren
+- Dauer pro Folie über Standardwert und optional über PowerPoint-Notizen steuern
+- für Lehrpersonen möglichst einfach bleiben
+- sauber dokumentiert und wartbar sein
+
+
+============================================================
+4. Nicht-Ziele
+============================================================
+
+Folgende Funktionen gehören nicht zur ersten Version:
+
+- vollständiger Yodeck-Klon
+- komplexer Drag-and-drop-Designer
+- direkte Live-Anzeige von PowerPoint auf dem Raspberry Pi
+- dauerhafter Microsoft-365-Login auf dem Raspberry Pi
+- komplexes Rollenmodell mit lokalen Technikern oder Standortadmins
+- App für Smartphones
+- Animationen und Übergänge aus PowerPoint
+- eingebettete Videos innerhalb von PowerPoint-Folien
+- sekundengenaue Echtzeit-Pushmeldungen
+- komplexe Freigabe-Workflows
+- automatische KI-Inhaltserstellung
+
+
+============================================================
+5. Rollenmodell
+============================================================
+
+Es gibt bewusst nur zwei Hauptrollen:
+
+1. Admin / Roman
+2. Lehrpersonen / Schulleitungen als Redaktion
+
+------------------------------------------------------------
+5.1 Admin / Roman
+------------------------------------------------------------
+
+Der Admin verwaltet:
+
+- Schulen / Standorte
+- Bildschirmgruppen
+- einzelne Raspberry-Pi-Player
+- IP-Adressen
+- Hostnamen
+- Player-Zuordnungen
+- PowerPoint-Dateien pro Bildschirmgruppe
+- Standarddauer pro Folie
+- Zeitpläne
+- HDMI-Off / Black-Screen-Verhalten
+- Overlays
+- Ticker / Eilmeldung
+- Playerstatus
+- Renderingstatus
+- Fehler und Logs
+
+------------------------------------------------------------
+5.2 Lehrpersonen / Schulleitungen
+------------------------------------------------------------
+
+Lehrpersonen und Schulleitungen bearbeiten keine technischen Listen und keine Player-Konfigurationen.
+
+Sie bearbeiten nur die zentrale PowerPoint-Datei der jeweiligen Bildschirmgruppe.
+
+Typischer Ablauf:
+
+1. SPFx-Portal öffnen.
+2. Gewünschte Bildschirmgruppe auswählen.
+3. Button "PowerPoint bearbeiten" anklicken.
+4. PowerPoint Online öffnet die zentrale Präsentation.
+5. Folien bearbeiten, ergänzen, löschen oder verschieben.
+6. Speichern.
+7. System rendert automatisch.
+8. Player übernehmen die neue Version beim nächsten Sync.
+
+Lehrpersonen sollen jederzeit sehen können:
+
+- welche Folien aktuell enthalten sind
+- in welcher Reihenfolge die Folien erscheinen
+- wie die gerenderte Vorschau aussieht
+- wann zuletzt erfolgreich gerendert wurde
+- ob die Inhalte auf den Playern angekommen sind
+
+
+============================================================
+6. Standort-, Gruppen- und Player-Logik
+============================================================
+
+Das System trennt klar zwischen Schule, Bildschirmgruppe und Player.
+
+Beispiel:
+
+Schule / Standort:
+- OZN
+- OSS
+- PSB
+- PSM
+- PSO
+- PSH
+
+Bildschirmgruppe:
+- OZN_Eingang
+- OSS_Eingang
+- PSB_Eingang
+
+Player:
+- OZN_SCREEN_01
+- OZN_SCREEN_02
+- OSS_SCREEN_01
+
+Mehrere Player können derselben Bildschirmgruppe zugeordnet sein. Dadurch zeigen sie dieselbe Slideshow, haben aber jeweils eigene technische Daten und Statuswerte.
+
+Beispiel:
+
+Bildschirmgruppe: OZN_Eingang
+PowerPoint: OZN_Eingang.pptx
+Player:
+- OZN_SCREEN_01
+- OZN_SCREEN_02
+
+Beide Player erhalten dasselbe Manifest und dieselben Folienbilder, melden aber getrennt ihren Status zurück.
+
+
+============================================================
+7. Architektur
+============================================================
+
+Die Zielarchitektur besteht aus folgenden Komponenten:
+
+1. SharePoint Online
+   - Speicherung der zentralen PowerPoint-Dateien
+   - Speicherung der gerenderten Folienbilder
+   - Speicherung der Listen für Gruppen, Player und Zeitpläne
+
+2. SPFx-WebPart
+   - Adminoberfläche
+   - Vorschauoberfläche
+   - Link zur Bearbeitung der zentralen PowerPoint-Datei
+   - Statusanzeigen
+
+3. Renderdienst
+   - erkennt Änderungen an PowerPoint-Dateien
+   - rendert PowerPoint-Dateien zu Bildern
+   - liest optionale Foliendauer aus Notizen
+   - erzeugt Manifest-Dateien
+
+4. Player-API
+   - liefert pro Player bzw. Bildschirmgruppe ein Manifest
+   - liefert oder referenziert die benötigten Assets
+   - nimmt Heartbeats entgegen
+   - aktualisiert Playerstatus
+
+5. Raspberry-Pi-Player
+   - lädt Manifest und Assets
+   - speichert Inhalte lokal
+   - spielt lokale Slideshow ab
+   - zeigt Overlays
+   - beachtet Zeitplan
+   - meldet Status zurück
+
+
+Architekturübersicht:
+
+SharePoint / SPFx
+    |
+    | zentrale PPTX, Gruppen, Player, Zeitpläne
+    v
+Renderdienst / API
+    |
+    | Manifest + gerenderte Folienbilder
+    v
+Raspberry-Pi-Player
+    |
+    | lokale Wiedergabe, Cache, Overlay, HDMI-Off
+    v
+Bildschirm
+
+
+============================================================
+8. PowerPoint als redaktionelle Quelle
+============================================================
+
+Pro Bildschirmgruppe gibt es genau eine zentrale PowerPoint-Datei.
+
+Diese Datei liegt kontrolliert in SharePoint, zum Beispiel:
+
+/Signage/OZN_Eingang/source/OZN_Eingang.pptx
+/Signage/OSS_Eingang/source/OSS_Eingang.pptx
+
+Die SPFx-Oberfläche zeigt pro Bildschirmgruppe einen Button:
+
+"PowerPoint bearbeiten"
+
+Dieser Button öffnet die zentrale PowerPoint-Datei direkt in PowerPoint Online.
+
+Lehrpersonen erstellen nicht jeweils eigene Präsentationen und laden auch nicht ständig einzelne Meldungen hoch. Sie bearbeiten die bestehende gemeinsame PowerPoint-Datei.
+
+Vorteile:
+
+- sehr einfache Bedienung
+- alle sehen den vollständigen Inhalt
+- Reihenfolge ist klar
+- bestehende Folien können direkt angepasst werden
+- keine unübersichtliche Sammlung von Einzelmeldungen
+- nahe am bisherigen Google-Slides-Prinzip
+- Player bleibt technisch einfach, weil er nur Bilder abspielt
+
+
+============================================================
+9. Rendering PowerPoint zu Bildern
+============================================================
+
+Nach Änderungen an der PowerPoint-Datei wird diese automatisch gerendert.
+
+Grundprinzip:
+
+OZN_Eingang.pptx
+    -> slide-001.png
+    -> slide-002.png
+    -> slide-003.png
+    -> manifest.json
+
+Der Player zeigt später nur diese gerenderten Bilder an, nicht die PowerPoint-Datei selbst.
+
+Wichtig:
+
+- Animationen werden nicht übernommen.
+- Folienübergänge werden nicht übernommen.
+- Eingebettete Videos in PowerPoint sind in Version 1 nicht vorgesehen.
+- Die gerenderte Vorschau ist die verbindliche Player-Ausgabe.
+- Bei Renderingfehlern bleibt die alte Version aktiv.
+
+Mögliche technische Umsetzung:
+
+- LibreOffice headless
+- PPTX -> PDF
+- PDF -> PNG pro Seite
+
+Alternativ kann später geprüft werden, ob Microsoft Graph oder ein anderer Renderingdienst geeignet ist. Für Version 1 soll aber eine robuste und kontrollierbare Rendering-Pipeline bevorzugt werden.
+
+
+============================================================
+10. Dauer pro Folie
+============================================================
+
+Jede Bildschirmgruppe hat eine Standarddauer pro Folie.
+
+Beispiel:
+
+OZN_Eingang:
+DefaultSlideDurationSeconds = 12
+
+Wenn in der PowerPoint-Folie keine spezielle Dauer eingetragen ist, wird diese Standarddauer verwendet.
+
+Optional kann die Dauer pro Folie über die PowerPoint-Notizen überschrieben werden.
+
+Zulässige Syntax in den Foliennotizen:
+
+dauer: 20
+
+oder
+
+duration: 20
+
+Bedeutung:
+Diese Folie wird 20 Sekunden angezeigt.
+
+Regeln:
+
+- Wenn keine Dauer gefunden wird, gilt die Standarddauer der Bildschirmgruppe.
+- Wenn eine gültige Dauer gefunden wird, überschreibt sie die Standarddauer.
+- Wenn eine ungültige Dauer gefunden wird, wird die Standarddauer verwendet.
+- Ungültige Werte sollen im Renderingstatus als Warnung erscheinen.
+- Das System darf wegen einer ungültigen Dauerangabe nicht abbrechen.
+
+Beispiele:
+
+gültig:
+dauer: 15
+duration: 30
+
+ungültig:
+dauer: lang
+duration: abc
+dauer: -5
+
+Bei ungültigen Werten:
+- Standarddauer verwenden
+- Warnung im SPFx-Portal anzeigen
+
+
+============================================================
+11. Layer-Modell
+============================================================
+
+------------------------------------------------------------
+11.1 Layer 1: Hauptslideshow
+------------------------------------------------------------
+
+Quelle:
+zentrale PowerPoint-Datei pro Bildschirmgruppe
+
+Ausgabe:
+gerenderte Bilder
+
+Steuerung:
+- Reihenfolge entspricht Folienreihenfolge
+- Dauer entspricht Notizwert oder Standarddauer
+
+------------------------------------------------------------
+11.2 Layer 2: Systemoverlay
+------------------------------------------------------------
+
+Das Systemoverlay wird vom Player über die Slideshow gelegt.
+
+Mögliche Elemente:
+
+- Uhrzeit
+- Datum
+- Standortname
+- Logo
+
+Konfiguration pro Bildschirmgruppe:
+
+- Uhr anzeigen: ja/nein
+- Datum anzeigen: ja/nein
+- Position: unten rechts / unten links / oben rechts / oben links
+- Design: hell / dunkel / automatisch
+
+------------------------------------------------------------
+11.3 Layer 3: Ticker / Eilmeldung
+------------------------------------------------------------
+
+Optionaler Zusatzlayer für besondere Meldungen.
+
+Diese Funktion ist nicht der normale Lehrerworkflow, sondern eine Adminfunktion oder spätere Erweiterung.
+
+Mögliche Elemente:
+
+- Eilmeldung
+- Lauftext
+- Newszeile
+- Notfallhinweis
+
+Konfiguration:
+
+- aktiv ja/nein
+- Text
+- Position
+- Priorität
+- Zeitraum optional
+
+
+============================================================
+12. Player-Konzept
+============================================================
+
+Der Raspberry-Pi-Player ist ein lokaler Player mit periodischer Synchronisation.
+
+Er ist kein Browser für SharePoint und zeigt keine PowerPoint-Datei live an.
+
+Grundprinzip:
+
+1. Player startet automatisch.
+2. Player liest lokale Konfiguration.
+3. Player spielt lokale Inhalte aus dem aktuellen Cache ab.
+4. Player fragt periodisch bei der API nach einer neuen Version.
+5. Wenn keine neue Version vorhanden ist, läuft er unverändert weiter.
+6. Wenn eine neue Version vorhanden ist, lädt er sie in einen temporären Bereich.
+7. Er prüft, ob Manifest und alle Dateien vollständig vorhanden sind.
+8. Erst dann schaltet er atomar auf die neue Version um.
+9. Die vorherige Version bleibt als Fallback erhalten.
+10. Bei Fehlern läuft die bisherige Version weiter.
+
+Der Player soll alle 5 Minuten prüfen, ob eine neue Manifest-Version verfügbar ist.
+
+Wichtig:
+Es wird nicht alle 5 Minuten alles neu heruntergeladen. Der Player prüft zuerst nur die Versionsnummer oder den Manifest-Hash.
+
+Wenn keine Änderung vorliegt:
+- kein Download
+
+Wenn eine Änderung vorliegt:
+- neues Manifest laden
+- neue oder geänderte Assets laden
+- Vollständigkeit prüfen
+- umschalten
+
+
+============================================================
+13. Lokaler Cache auf dem Raspberry Pi
+============================================================
+
+Beispielhafte Struktur:
+
+/opt/school-signage/
+  player/
+    index.html
+    app.js
+    style.css
+
+  data/
+    current/
+      manifest.json
+      slides/
+        slide-001.png
+        slide-002.png
+        slide-003.png
+
+    next/
+      manifest.json
+      slides/
+
+    previous/
+      manifest.json
+      slides/
+
+  config/
+    device.json
+
+  logs/
+    player.log
+
+device.json:
+
+{
+  "playerId": "OZN_SCREEN_01",
+  "apiUrl": "https://example/api/player",
+  "token": "TECHNICAL_TOKEN",
+  "checkIntervalSeconds": 300
+}
+
+current:
+aktuell aktive Version
+
+next:
+temporär heruntergeladene neue Version
+
+previous:
+letzte funktionierende Version als Fallback
+
+
+============================================================
+14. Manifest
+============================================================
+
+Beispielmanifest:
+
+{
+  "groupId": "OZN_EINGANG",
+  "playerId": "OZN_SCREEN_01",
+  "version": "2026-06-05T14:20:00Z",
+  "defaultSlideDurationSeconds": 12,
+  "schedule": {
+    "monday": { "active": true, "from": "07:00", "until": "18:00" },
+    "tuesday": { "active": true, "from": "07:00", "until": "18:00" },
+    "wednesday": { "active": true, "from": "07:00", "until": "18:00" },
+    "thursday": { "active": true, "from": "07:00", "until": "18:00" },
+    "friday": { "active": true, "from": "07:00", "until": "18:00" },
+    "saturday": { "active": false },
+    "sunday": { "active": false },
+    "offMode": "hdmi_off"
+  },
+  "baseLayer": {
+    "type": "renderedPowerPoint",
+    "slides": [
+      {
+        "file": "slides/slide-001.png",
+        "durationSeconds": 12,
+        "sourceSlideNumber": 1
+      },
+      {
+        "file": "slides/slide-002.png",
+        "durationSeconds": 20,
+        "sourceSlideNumber": 2
+      }
+    ]
+  },
+  "overlayLayer": {
+    "showClock": true,
+    "showDate": true,
+    "position": "bottom-right"
+  },
+  "tickerLayer": {
+    "active": false,
+    "text": ""
+  }
+}
+
+
+============================================================
+15. Zeitsteuerung / Display abschalten
+============================================================
+
+Der Raspberry Pi soll grundsätzlich 24/7 laufen können.
+
+Nachts und am Wochenende soll nicht zwingend der Raspberry Pi ausgeschaltet werden. Stattdessen soll der Bildschirm deaktiviert werden.
+
+Unterstützte Off-Modes:
+
+1. black_screen
+   Der Player zeigt ein schwarzes Bild.
+
+2. hdmi_off
+   Der HDMI-Ausgang wird deaktiviert.
+
+3. browser_stop
+   Der Browser/Player wird gestoppt und später wieder gestartet.
+
+Standardempfehlung:
+
+- Version 1 muss black_screen sicher unterstützen.
+- hdmi_off soll unterstützt werden, muss aber pro Bildschirmmodell getestet werden.
+- echter System-Shutdown des Raspberry Pi ist nicht Standard.
+
+Grund:
+Ein heruntergefahrener Raspberry Pi startet nicht zuverlässig von selbst wieder, ausser es gibt eine externe Stromsteuerung. Für den Schulalltag ist ein 24/7 laufender Pi mit HDMI-Off oder Black-Screen robuster.
+
+Optional:
+- täglicher automatischer Reboot, z. B. um 04:00 Uhr
+- Watchdog für Player-Prozess
+
+
+============================================================
+16. SPFx-Admin- und Vorschauumgebung
+============================================================
+
+Die SPFx-Umgebung ist die zentrale Verwaltungs- und Kontrolloberfläche.
+
+Sie soll folgende Bereiche enthalten:
+
+1. Dashboard
+2. Schulen / Standorte
+3. Bildschirmgruppen
+4. Player
+5. Zeitpläne
+6. Renderingstatus
+7. Vorschau
+8. Einstellungen
+
+------------------------------------------------------------
+16.1 Dashboard
+------------------------------------------------------------
+
+Anzeige:
+
+- Anzahl Player
+- Anzahl aktive Player
+- Anzahl offline Player
+- letzte Fehler
+- Gruppen mit Renderingfehler
+- letzte erfolgreiche Renderings
+- Player mit altem Manifest
+- Player mit auffälligem Status
+
+------------------------------------------------------------
+16.2 Bildschirmgruppenansicht
+------------------------------------------------------------
+
+Pro Gruppe anzeigen:
+
+- Name
+- Standort
+- zugeordnete PowerPoint-Datei
+- Button "PowerPoint bearbeiten"
+- Button "Vorschau öffnen"
+- Button "Neu rendern"
+- Standarddauer pro Folie
+- Uhr anzeigen ja/nein
+- Datum anzeigen ja/nein
+- Zeitplan
+- letzte PowerPoint-Änderung
+- letzter Renderzeitpunkt
+- Renderstatus
+- Anzahl Folien
+- aktuelle Manifest-Version
+- zugeordnete Player
+
+------------------------------------------------------------
+16.3 Vorschau
+------------------------------------------------------------
+
+Die Vorschau ist Pflicht.
+
+Die Vorschau soll nicht die PowerPoint-Datei live einbetten, sondern die tatsächlich gerenderten Folienbilder anzeigen.
+
+Ziel:
+Admin und Lehrpersonen sehen, was der Player wirklich anzeigen wird.
+
+Die Vorschau soll anzeigen:
+
+- alle gerenderten Folien
+- Foliennummer
+- Dauer pro Folie
+- Warnungen aus Notizen
+- Overlayvorschau mit Uhr/Datum
+- aktuelle Manifest-Version
+- Zeitpunkt des letzten Renderings
+
+Optional:
+- Slideshow-Simulation im Browser
+- Vollbildvorschau
+- Anzeige "Diese Version ist aktuell auf Player X aktiv"
+
+------------------------------------------------------------
+16.4 Playeransicht
+------------------------------------------------------------
+
+Pro Player anzeigen:
+
+- PlayerId
+- Name
+- Standort
+- Bildschirmgruppe
+- IP-Adresse
+- Hostname
+- aktiv ja/nein
+- Player-Version
+- aktuelle Manifest-Version
+- letzter Kontakt
+- letzter Sync
+- Status
+- letzter Fehler
+- optional Temperatur
+- optional freier Speicher
+
+Aktionen:
+
+- Player aktivieren/deaktivieren
+- Gruppe zuweisen
+- Token neu erzeugen
+- Notizen bearbeiten
+- Status prüfen
+- später: Reload anfordern
+
+
+============================================================
+17. SharePoint-Datenmodell
+============================================================
+
+------------------------------------------------------------
+17.1 Liste: SignageSites
+------------------------------------------------------------
+
+Zweck:
+Schulen / Standorte verwalten.
+
+Felder:
+
+- Title
+- SiteId
+- Beschreibung
+- Aktiv
+
+Beispiele:
+
+- OZN
+- OSS
+- PSB
+- PSM
+- PSO
+- PSH
+
+------------------------------------------------------------
+17.2 Liste: SignageGroups
+------------------------------------------------------------
+
+Zweck:
+Bildschirmgruppen verwalten.
+
+Felder:
+
+- Title
+- GroupId
+- SiteId
+- PowerPointFileUrl
+- DefaultSlideDurationSeconds
+- ScheduleId
+- ShowClock
+- ShowDate
+- OverlayPosition
+- OverlayTheme
+- TickerEnabled
+- TickerText
+- Aktiv
+- LastPptModified
+- LastRenderTime
+- LastRenderStatus
+- LastRenderWarnings
+- CurrentManifestVersion
+- RenderedSlideCount
+
+------------------------------------------------------------
+17.3 Liste: SignagePlayers
+------------------------------------------------------------
+
+Zweck:
+Einzelne Raspberry-Pi-Player verwalten.
+
+Felder:
+
+- Title
+- PlayerId
+- GroupId
+- IPAddress
+- Hostname
+- MACAddress
+- Aktiv
+- TokenHash
+- PlayerVersion
+- LastSeen
+- LastSync
+- CurrentManifestVersion
+- Status
+- LastError
+- FreeDiskSpace
+- Temperature
+- Notes
+
+------------------------------------------------------------
+17.4 Liste: SignageSchedules
+------------------------------------------------------------
+
+Zweck:
+Zeitpläne verwalten.
+
+Felder:
+
+- Title
+- ScheduleId
+- MondayActive
+- MondayFrom
+- MondayUntil
+- TuesdayActive
+- TuesdayFrom
+- TuesdayUntil
+- WednesdayActive
+- WednesdayFrom
+- WednesdayUntil
+- ThursdayActive
+- ThursdayFrom
+- ThursdayUntil
+- FridayActive
+- FridayFrom
+- FridayUntil
+- SaturdayActive
+- SaturdayFrom
+- SaturdayUntil
+- SundayActive
+- SundayFrom
+- SundayUntil
+- OffMode
+- DailyRebootEnabled
+- DailyRebootTime
+- HolidayModeEnabled
+- Notes
+
+------------------------------------------------------------
+17.5 Dokumentbibliothek: SignageLibrary
+------------------------------------------------------------
+
+Zweck:
+Speicherung der Quell-PowerPoints, gerenderten Folien und Manifest-Dateien.
+
+Empfohlene Struktur:
+
+/SignageLibrary/
+  /OZN_Eingang/
+    /source/
+      OZN_Eingang.pptx
+    /rendered/
+      /2026-06-05-1420/
+        manifest.json
+        slide-001.png
+        slide-002.png
+        slide-003.png
+      /2026-06-05-1505/
+        manifest.json
+        slide-001.png
+        slide-002.png
+
+  /OSS_Eingang/
+    /source/
+      OSS_Eingang.pptx
+    /rendered/
+      /...
+
+
+============================================================
+18. Player-API
+============================================================
+
+Die Player-API liefert Manifest und Statusfunktionen.
+
+------------------------------------------------------------
+18.1 Manifest-Version prüfen
+------------------------------------------------------------
+
+GET /api/player/version?playerId=OZN_SCREEN_01
+
+Antwort:
+
+{
+  "playerId": "OZN_SCREEN_01",
+  "groupId": "OZN_EINGANG",
+  "currentManifestVersion": "2026-06-05T14:20:00Z"
+}
+
+------------------------------------------------------------
+18.2 Manifest abrufen
+------------------------------------------------------------
+
+GET /api/player/manifest?playerId=OZN_SCREEN_01
+
+Antwort:
+manifest.json für die zugeordnete Bildschirmgruppe.
+
+------------------------------------------------------------
+18.3 Asset abrufen
+------------------------------------------------------------
+
+GET /api/player/assets/{groupId}/{version}/{filename}
+
+Liefert:
+- slide-001.png
+- slide-002.png
+- weitere Assets
+
+------------------------------------------------------------
+18.4 Heartbeat senden
+------------------------------------------------------------
+
+POST /api/player/heartbeat
+
+Beispiel:
+
+{
+  "playerId": "OZN_SCREEN_01",
+  "playerVersion": "0.1.0",
+  "currentManifestVersion": "2026-06-05T14:20:00Z",
+  "status": "playing",
+  "lastError": "",
+  "freeDiskSpace": "12GB",
+  "temperature": "48"
+}
+
+Zweck:
+Die Adminoberfläche kann sehen, ob der Player online ist und welche Version läuft.
+
+
+============================================================
+19. Sicherheit
+============================================================
+
+Sicherheitsprinzipien:
+
+- Raspberry Pi erhält keinen normalen Benutzerzugriff auf SharePoint.
+- Raspberry Pi meldet sich nicht mit einem Lehrpersonen- oder Adminkonto an.
+- Zugriff des Players erfolgt über PlayerId und technisches Token.
+- Tokens werden nicht im Klartext in der Adminoberfläche angezeigt.
+- Tokens werden nur gehasht oder geschützt gespeichert.
+- Adminzugriffe erfolgen über normale Microsoft-365-Berechtigungen.
+- Lehrpersonen erhalten nur Zugriff auf die zentrale PowerPoint-Datei und ggf. Vorschau.
+- Keine sensiblen Schülerdaten auf Infobildschirmen anzeigen.
+- Keine Portraitfotos oder personenbezogenen Inhalte ohne separate schulische Klärung.
+- Externe Inhalte / News / Webseiten nur bewusst und kontrolliert einbinden.
+
+
+============================================================
+20. Raspberry-Pi-Installation
+============================================================
+
+Ziel:
+Ein neuer Raspberry Pi soll möglichst reproduzierbar eingerichtet werden können.
+
+Komponenten:
+
+- Raspberry Pi OS
+- Chromium oder geeigneter Browser
+- Kioskmodus
+- systemd-Service für Autostart
+- lokales Player-Verzeichnis
+- lokale Konfigurationsdatei
+- lokaler Cache
+- Logging
+- optional Watchdog
+- optional täglicher Reboot
+
+Installationsskript soll:
+
+- benötigte Pakete installieren
+- Playerverzeichnis erstellen
+- Konfigurationsdatei anlegen
+- systemd-Service einrichten
+- Kioskmodus konfigurieren
+- Logverzeichnis erstellen
+- Rechte setzen
+- Teststart ausführen
+
+Beispielpfad:
+
+/opt/school-signage/
+
+Beispiel-Service:
+
+school-signage-player.service
+
+Beispiel-Konfig:
+
+/opt/school-signage/config/device.json
+
+
+============================================================
+21. Fehlerverhalten
+============================================================
+
+Der Player muss robust mit Fehlern umgehen.
+
+------------------------------------------------------------
+21.1 Netzwerk nicht verfügbar
+------------------------------------------------------------
+
+Verhalten:
+
+- aktuelle lokale Version weiter abspielen
+- Fehler lokal loggen
+- später erneut versuchen
+- keine Fehlermeldung auf dem Bildschirm anzeigen, wenn noch gültige Inhalte vorhanden sind
+
+------------------------------------------------------------
+21.2 API nicht erreichbar
+------------------------------------------------------------
+
+Verhalten:
+
+- aktuelle lokale Version weiter abspielen
+- Heartbeat später erneut versuchen
+- Status lokal loggen
+
+------------------------------------------------------------
+21.3 Neue Version unvollständig
+------------------------------------------------------------
+
+Verhalten:
+
+- neue Version nicht aktivieren
+- current bleibt aktiv
+- next verwerfen oder als fehlerhaft markieren
+- Fehler melden
+
+------------------------------------------------------------
+21.4 Renderingfehler
+------------------------------------------------------------
+
+Verhalten:
+
+- alte gerenderte Version bleibt aktiv
+- SPFx zeigt Renderingfehler
+- Player erhält keine defekte Version
+
+------------------------------------------------------------
+21.5 Ungültige Dauer in Notizen
+------------------------------------------------------------
+
+Verhalten:
+
+- Standarddauer verwenden
+- Warnung im Renderstatus anzeigen
+- Rendering nicht abbrechen
+
+
+============================================================
+22. Sync-Intervall
+============================================================
+
+Gewünschtes Intervall:
+5 Minuten
+
+Grund:
+Im Schulbetrieb sind 30 Minuten oft zu träge. Änderungen sollen ungefähr innerhalb von 5 Minuten sichtbar werden.
+
+Wichtig:
+
+Der Player prüft alle 5 Minuten nur, ob eine neue Manifest-Version existiert.
+
+Nur bei Änderung werden neue Dateien heruntergeladen.
+
+Bei Fehlern:
+
+- erster erneuter Versuch nach kurzer Zeit
+- danach wieder normales Intervall
+- keine Endlosschleife mit aggressiven Downloads
+
+
+============================================================
+23. Versionierung
+============================================================
+
+Alle Komponenten erhalten semantische Versionen:
+
+- SPFx-WebPart: 0.1.0
+- Player-Webapp: 0.1.0
+- API: 0.1.0
+- Renderdienst: 0.1.0
+- Installationsskripte: 0.1.0
+
+Die Player-Version wird im Heartbeat zurückgemeldet.
+
+Jedes Manifest hat eine eigene Manifest-Version, z. B.:
+
+2026-06-05T14:20:00Z
+
+oder
+
+2026-06-05-1420
+
+
+============================================================
+24. Entwicklungsphasen
+============================================================
+
+------------------------------------------------------------
+Phase 0: Konzept und technischer Prototyp
+------------------------------------------------------------
+
+Ziele:
+
+- Architektur validieren
+- Renderingweg PPTX -> PNG testen
+- Raspberry-Pi-Player lokal testen
+- HDMI-Off / Black-Screen testen
+
+Abnahmekriterien:
+
+- lokale manifest.json funktioniert
+- Player spielt Folienbilder ab
+- Standarddauer funktioniert
+- Overlay Uhr/Datum funktioniert
+- HDMI-Off oder Black-Screen funktioniert grundsätzlich
+
+------------------------------------------------------------
+Phase 1: Lokaler Player-Prototyp
+------------------------------------------------------------
+
+Funktionen:
+
+- lokale manifest.json
+- lokale Folienbilder
+- Slideshow
+- Dauer pro Slide
+- Overlay mit Uhr/Datum
+- Zeitplan
+- Black-Screen ausserhalb Betriebszeit
+- Logging
+
+Abnahmekriterien:
+
+- Player startet automatisch
+- Player läuft stabil über einen Schultag
+- Player zeigt lokale Slideshow korrekt
+- Player beachtet Zeitplan
+- Logs werden geschrieben
+
+------------------------------------------------------------
+Phase 2: Gruppen- und Manifestlogik
+------------------------------------------------------------
+
+Funktionen:
+
+- GroupId
+- PlayerId
+- Manifest pro Gruppe
+- mehrere Player können dieselbe Gruppe anzeigen
+- lokale Cache-Struktur current/next/previous
+
+Abnahmekriterien:
+
+- zwei Player können dieselbe Gruppe anzeigen
+- jeder Player hat eigenen Status
+- Manifestwechsel erfolgt atomar
+- Fallback funktioniert
+
+------------------------------------------------------------
+Phase 3: SharePoint-Datenmodell
+------------------------------------------------------------
+
+Funktionen:
+
+- SignageSites
+- SignageGroups
+- SignagePlayers
+- SignageSchedules
+- SignageLibrary
+
+Abnahmekriterien:
+
+- Gruppen können erfasst werden
+- Player können Gruppen zugewiesen werden
+- PowerPoint-Datei pro Gruppe ist hinterlegt
+- Zeitplan kann verwaltet werden
+
+------------------------------------------------------------
+Phase 4: SPFx-Adminumgebung
+------------------------------------------------------------
+
+Funktionen:
+
+- Dashboard
+- Gruppenansicht
+- Playeransicht
+- Button "PowerPoint bearbeiten"
+- Vorschau der gerenderten Folien
+- Status Rendering
+- Status Player
+
+Abnahmekriterien:
+
+- Admin sieht alle Gruppen und Player
+- PowerPoint kann direkt geöffnet werden
+- Vorschau zeigt gerenderte Folien
+- Dauer pro Folie wird angezeigt
+- Renderwarnungen werden angezeigt
+
+------------------------------------------------------------
+Phase 5: Renderdienst
+------------------------------------------------------------
+
+Funktionen:
+
+- Änderung an PPTX erkennen
+- PowerPoint zu Bildern rendern
+- Notizen auslesen
+- Dauer pro Folie bestimmen
+- Manifest erzeugen
+- Renderstatus schreiben
+
+Abnahmekriterien:
+
+- geänderte PPTX wird erkannt
+- alle Folien werden als Bilder erzeugt
+- manifest.json wird erstellt
+- Dauer aus Notizen überschreibt Default
+- Fehler werden sauber angezeigt
+- alte Version bleibt bei Fehler aktiv
+
+------------------------------------------------------------
+Phase 6: API und Player-Sync
+------------------------------------------------------------
+
+Funktionen:
+
+- Version prüfen
+- Manifest abrufen
+- Assets abrufen
+- Heartbeat senden
+- Player lädt neue Version lokal
+- atomarer Wechsel
+
+Abnahmekriterien:
+
+- Änderung an PPTX erscheint nach Rendering und Sync auf Player
+- Player lädt neue Inhalte nur bei geänderter Version
+- Player läuft offline weiter
+- Status erscheint in SPFx
+
+------------------------------------------------------------
+Phase 7: Stabilisierung
+------------------------------------------------------------
+
+Funktionen:
+
+- Watchdog
+- bessere Logs
+- täglicher Reboot optional
+- HDMI-Off pro Display testen
+- Fehlerfälle dokumentieren
+
+Abnahmekriterien:
+
+- Player läuft mehrere Tage stabil
+- Neustart nach Stromunterbruch funktioniert
+- Offline-Situation wird korrekt abgefangen
+- Admin sieht Fehler klar
+
+
+============================================================
+25. Akzeptanzkriterien für Version 1
+============================================================
+
+Version 1 gilt als erfüllt, wenn:
+
+- mindestens zwei Bildschirmgruppen verwaltet werden können
+- pro Bildschirmgruppe eine zentrale PowerPoint-Datei hinterlegt ist
+- die PowerPoint-Datei über SPFx in PowerPoint Online geöffnet werden kann
+- Änderungen an der PowerPoint-Datei gerendert werden
+- gerenderte Folien in der SPFx-Vorschau sichtbar sind
+- Standarddauer pro Folie funktioniert
+- Dauer aus Notizen funktioniert
+- mindestens zwei Player dieselbe Bildschirmgruppe anzeigen können
+- Player Inhalte lokal cachen
+- Player offline mit letzter Version weiterlaufen
+- Player alle 5 Minuten auf neue Version prüfen
+- Zeitplan funktioniert
+- nachts Black-Screen oder HDMI-Off funktioniert
+- Heartbeat in der Adminoberfläche sichtbar ist
+- alte Version bei Fehlern aktiv bleibt
+- Installation und Betrieb dokumentiert sind
+
+
+============================================================
+26. Dokumentationsanforderungen
+============================================================
+
+Es sollen folgende Dokumente erstellt werden:
+
+1. README Gesamtprojekt
+2. Architekturübersicht
+3. SharePoint-Listenmodell
+4. SPFx-Installationsanleitung
+5. Raspberry-Pi-Installationsanleitung
+6. Player-Konfiguration
+7. Renderdienst-Dokumentation
+8. API-Dokumentation
+9. Troubleshooting
+10. Changelog
+
+
+============================================================
+27. Arbeitsweise für Claude Code
+============================================================
+
+Claude Code soll iterativ und kontrolliert arbeiten.
+
+Grundregeln:
+
+- keine unnötig grossen Architekturwechsel
+- keine erfundenen Zusatzfunktionen
+- keine komplexen Features ohne Auftrag
+- kleine testbare Schritte
+- nach jedem Schritt Build-/Testbefehl nennen
+- bekannte Einschränkungen offen nennen
+- klare Dateistruktur einhalten
+- gute Kommentare an kritischen Stellen
+- keine geheimen Tokens im Code
+- keine Benutzerkonten oder Passwörter hardcodieren
+
+Vor jeder grösseren Änderung soll Claude Code kurz nennen:
+
+- was geändert wird
+- welche Dateien betroffen sind
+- wie getestet wird
+
+Nach jeder grösseren Änderung soll Claude Code nennen:
+
+- was umgesetzt wurde
+- welche Befehle auszuführen sind
+- welche Tests sinnvoll sind
+- welche offenen Punkte bleiben
+
+
+============================================================
+28. Prioritätensetzung
+============================================================
+
+Höchste Priorität:
+
+1. Stabilität
+2. Offline-Fähigkeit
+3. einfache Bedienung für Lehrpersonen
+4. klare Adminsicht
+5. saubere Vorschau
+6. wartbare Architektur
+
+Niedrige Priorität:
+
+- Design-Spielereien
+- Animationen
+- komplexe Ticker
+- externe Newsfeeds
+- automatische Spezialeffekte
+- übermässig komplexes Rollenmodell
+
+
+============================================================
+29. Kernaussagen des Konzepts
+============================================================
+
+1. Der Raspberry Pi ist kein Browser für SharePoint, sondern ein lokaler Player mit periodischer Synchronisation.
+
+2. Die zentrale PowerPoint-Datei ist die redaktionelle Quelle.
+
+3. Lehrpersonen bearbeiten immer den vollständigen Inhalt, nicht einzelne isolierte Meldungen.
+
+4. Die tatsächliche Player-Ausgabe sind gerenderte Bilder, nicht die PowerPoint-Datei selbst.
+
+5. Änderungen werden lokal gecacht und atomar übernommen.
+
+6. Wenn der Player offline ist, läuft die letzte funktionierende Version weiter.
+
+7. Mehrere Player können derselben Bildschirmgruppe zugeordnet sein und dieselben Inhalte anzeigen.
+
+8. SPFx ist die Admin- und Vorschauumgebung, nicht der Player.
+
+9. Uhrzeit, Datum und Eilmeldungen sind eigene Layer über der Slideshow.
+
+10. Das System soll schlank bleiben und nicht Yodeck vollständig nachbauen.
+
+
+============================================================
+30. Startauftrag für Claude Code
+============================================================
+
+Starte nicht mit der vollständigen SPFx-Plattform.
+
+Starte mit einem lokalen Player-Prototyp.
+
+Aufgabe 1:
+
+Erstelle einen lokalen HTML/JavaScript-Player, der eine lokale manifest.json liest und daraus eine Slideshow mit gerenderten Folienbildern abspielt.
+
+Anforderungen:
+
+- index.html
+- app.js
+- style.css
+- manifest.json
+- Beispielbilder
+- Slideshow in Endlosschleife
+- Dauer pro Slide aus manifest.json
+- Overlay mit Uhrzeit und Datum
+- Black-Screen ausserhalb Zeitplan
+- robuste Fehlerbehandlung
+- Logging in der Browserkonsole
+- klare Dateistruktur
+
+Beispielstruktur:
+
+/player/
+  index.html
+  app.js
+  style.css
+  manifest.json
+  /slides/
+    slide-001.png
+    slide-002.png
+    slide-003.png
+
+Danach:
+
+- lokalen Test im Browser
+- später Kioskmodus auf Raspberry Pi
+- danach erst Sync-, API-, Render- und SPFx-Komponenten
+
+
+============================================================
+ENDE DES DOKUMENTS
+============================================================

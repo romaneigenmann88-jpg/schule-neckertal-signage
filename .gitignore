@@ -1,0 +1,16 @@
+# Render-Ausgaben (werden in der Action erzeugt, nicht eingecheckt)
+out/
+*.pdf
+slide-*.png
+
+# Temporaeres
+/tmp/
+*.log
+
+# Original-PPTX im Wurzelordner (Arbeitskopie liegt unter render/samples/)
+/Info-Screen OZ Necker 2022.pptx
+
+# OS / Editor
+Thumbs.db
+.DS_Store
+.vscode/

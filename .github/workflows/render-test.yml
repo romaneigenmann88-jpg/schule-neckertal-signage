@@ -1,0 +1,71 @@
+name: Render-Test (PPTX -> PNG)
+
+# Ehrlicher Render-Test unter denselben Bedingungen wie spaeter in Produktion:
+# Linux-Runner, LibreOffice headless, mit explizit installierten Schriften.
+# Manuell ausloesbar (workflow_dispatch) oder bei Aenderung am Sample/Workflow.
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'render/samples/**'
+      - '.github/workflows/render-test.yml'
+
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Repository auschecken
+        uses: actions/checkout@v4
+
+      - name: LibreOffice, poppler und Schriften installieren
+        run: |
+          set -e
+          sudo apt-get update
+          # MS-Core-Fonts EULA vorab akzeptieren (sonst interaktiver Prompt)
+          echo "ttf-mscorefonts-installer msttcorefonts/accepted-mscorefonts-eula select true" | sudo debconf-set-selections
+          sudo DEBIAN_FRONTEND=noninteractive apt-get install -y \
+            libreoffice \
+            poppler-utils \
+            fontconfig \
+            fonts-comfortaa \
+            ttf-mscorefonts-installer || true
+
+          # Caveat (Variable Font, enthaelt SemiBold-Gewicht) aus Google Fonts holen
+          mkdir -p "$HOME/.fonts"
+          curl -fsSL "https://github.com/google/fonts/raw/main/ofl/caveat/Caveat%5Bwght%5D.ttf" \
+            -o "$HOME/.fonts/Caveat.ttf" || echo "WARN: Caveat-Download fehlgeschlagen"
+          fc-cache -f
+
+          echo "=== Installierte relevante Schriften ==="
+          fc-list | grep -iE "caveat|comfortaa|arial" || echo "(keine der gesuchten Schriften gefunden)"
+
+      - name: LibreOffice-Version
+        run: soffice --version
+
+      - name: PPTX -> PDF rendern
+        run: |
+          set -e
+          mkdir -p out
+          soffice --headless --convert-to pdf \
+            --outdir out "render/samples/info-screen-oz-necker-2022.pptx"
+          echo "=== Erzeugte PDFs ==="
+          ls -la out
+
+      - name: PDF -> PNG pro Folie (1920px breit)
+        run: |
+          set -e
+          cd out
+          pdf=$(ls *.pdf | head -1)
+          # -scale-to-x 1920 -> Breite 1920px, Hoehe proportional (-1)
+          pdftoppm -png -scale-to-x 1920 -scale-to-y -1 "$pdf" slide
+          echo "=== Erzeugte PNGs ==="
+          ls -la slide-*.png
+          echo "Anzahl Folien gerendert: $(ls slide-*.png | wc -l)"
+
+      - name: Gerenderte Folien als Artefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: gerenderte-folien-png
+          path: out/slide-*.png
+          retention-days: 14
