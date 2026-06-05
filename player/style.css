@@ -35,13 +35,17 @@ html, body {
   line-height: 1.1;
   white-space: nowrap;
 }
-#clock { font-size: 3.0vw; font-weight: 700; }
-#date  { font-size: 1.7vw; font-weight: 600; }
+#clock { font-size: 3.6vw; font-weight: 700; }
+#date  { font-size: 2.4vw; font-weight: 600; }
 
-/* Positionen (oben/unten × links/mitte/rechts) */
-.pos-top-left      { top: 2.2vw; left: 2.5vw; }
-.pos-top-center    { top: 2.2vw; left: 50%; transform: translateX(-50%); text-align: center; }
-.pos-top-right     { top: 2.2vw; right: 2.5vw; text-align: right; }
+/* Positionen (oben/unten × links/mitte/rechts).
+   Die oberen Positionen werden vertikal auf eine gemeinsame Mittellinie (~6.5vh)
+   zentriert – auf Höhe des "SCHULE NECKERTAL"-Logos, oberhalb des blauen Strichs.
+   translateY(-50%) sorgt dafür, dass Datum und Uhr trotz unterschiedlicher
+   Schriftgrösse exakt auf derselben Höhe sitzen. */
+.pos-top-left      { top: 6.5vh; left: 2.5vw; transform: translateY(-50%); }
+.pos-top-center    { top: 6.5vh; left: 50%; transform: translate(-50%, -50%); text-align: center; }
+.pos-top-right     { top: 6.5vh; right: 2.5vw; transform: translateY(-50%); text-align: right; }
 .pos-bottom-left   { bottom: 2.5vw; left: 2.5vw; }
 .pos-bottom-center { bottom: 2.5vw; left: 50%; transform: translateX(-50%); text-align: center; }
 .pos-bottom-right  { bottom: 2.5vw; right: 2.5vw; text-align: right; }
