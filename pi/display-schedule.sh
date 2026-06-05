@@ -1,13 +1,15 @@
 #!/bin/sh
-# Schule Neckertal Signage – Bildschirm-Zeitsteuerung (HDMI-Off).
+# Schule Neckertal Signage – Bildschirm-Zeitsteuerung (HDMI-Off via CEC).
 # Liest Zeitplan + offMode aus dem aktiven Manifest. Nur wenn offMode=hdmi_off:
-# schaltet den HDMI-Ausgang ausserhalb der Betriebszeit aus (echter Standby)
-# und innerhalb wieder an. Idempotent (schaltet nur bei Zustandswechsel).
+# sendet ausserhalb der Betriebszeit CEC-Standby an den Bildschirm und innerhalb
+# CEC-"Einschalten". CEC ist der zuverlässige Weg für Fernseher/Displays.
+#
+# Auf Geräten OHNE CEC (z. B. PC-Monitore) bleibt das wirkungslos und stört
+# NICHT (kein Flackern). Der Browser-Player zeigt zusätzlich Black-Screen als
+# universellen Fallback.
 
-export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
-export WAYLAND_DISPLAY="${WAYLAND_DISPLAY:-wayland-0}"
 MAN="${SIGNAGE_MANIFEST:-/opt/school-signage/web/content/manifest.json}"
-OUTPUT="${SIGNAGE_OUTPUT:-HDMI-A-1}"
+CEC="${SIGNAGE_CEC:-/dev/cec0}"
 
 desired=$(python3 - "$MAN" <<'PY'
 import sys, json, datetime
@@ -29,16 +31,18 @@ try:
 except SystemExit:
     raise
 except Exception:
-    print("on")   # im Zweifel Bildschirm an lassen
+    print("on")   # im Zweifel anlassen
 PY
 )
 
 [ "$desired" = "skip" ] && exit 0
+[ -e "$CEC" ] || exit 0
+command -v cec-ctl >/dev/null 2>&1 || exit 0
 
-# aktuellen Zustand des Ausgangs ermitteln (yes/no)
-cur=$(wlr-randr 2>/dev/null | awk -v o="$OUTPUT" '$0 ~ "^"o" " {f=1} f && /Enabled/ {print $2; exit}')
+# Pi als Playback-Geraet am CEC-Bus anmelden (idempotent)
+cec-ctl -d "$CEC" --playback >/dev/null 2>&1
 
 case "$desired" in
-  off) [ "$cur" = "no" ]  || { wlr-randr --output "$OUTPUT" --off && echo "HDMI $OUTPUT -> aus"; } ;;
-  on)  [ "$cur" = "yes" ] || { wlr-randr --output "$OUTPUT" --on  && echo "HDMI $OUTPUT -> an"; } ;;
+  off) cec-ctl -d "$CEC" --to 0 --standby >/dev/null 2>&1 ;;
+  on)  cec-ctl -d "$CEC" --to 0 --image-view-on >/dev/null 2>&1 ;;
 esac

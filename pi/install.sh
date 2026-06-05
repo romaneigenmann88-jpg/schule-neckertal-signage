@@ -45,9 +45,9 @@ fi
 echo "[1/10] Pakete installieren ..."
 sudo apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  chromium python3 grim wlr-randr fonts-comfortaa >/dev/null 2>&1 || \
+  chromium python3 grim wlr-randr v4l-utils fonts-comfortaa >/dev/null 2>&1 || \
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  chromium-browser python3 grim wlr-randr fonts-comfortaa >/dev/null
+  chromium-browser python3 grim wlr-randr v4l-utils fonts-comfortaa >/dev/null
 
 # ---------- 2. Verzeichnisse ----------
 echo "[2/10] Verzeichnisse anlegen ..."
