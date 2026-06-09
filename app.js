@@ -5,6 +5,8 @@
 
 const REPO = 'romaneigenmann88-jpg/schule-neckertal-signage';
 const BRANCH = 'main';
+const HEARTBEAT_URL = 'https://signage-heartbeat.schule-neckertal.workers.dev';
+const ONLINE_MS = 12 * 60 * 1000;   // online, wenn vor < 12 Min gesehen
 const rawConfigUrl = (gid) => `https://raw.githubusercontent.com/${REPO}/${BRANCH}/groups/${gid}/config.json`;
 const editConfigUrl = (gid) => `https://github.com/${REPO}/edit/${BRANCH}/groups/${gid}/config.json`;
 
@@ -42,18 +44,28 @@ async function main() {
     return;
   }
   $('meta').textContent = `Stand: ${fmtDate(index.generated)} · ${index.groups.length} Gruppe(n)`;
+
+  // Live-Status (Heartbeat) holen und nach Gruppe sortieren
+  let beats = null;
+  try {
+    const hb = await (await fetch(`${HEARTBEAT_URL}?n=${Date.now()}`, { cache: 'no-store' })).json();
+    beats = {};
+    for (const p of (hb.players || [])) (beats[p.groupId] = beats[p.groupId] || []).push(p);
+  } catch (e) { beats = null; }
+
   const container = $('groups');
   container.innerHTML = '';
   for (const gid of index.groups) {
     try {
       const m = await fetchJson(`groups/${gid}/manifest.json`);
-      container.appendChild(card(gid, m));
+      const players = beats ? (beats[gid] || []) : null;
+      container.appendChild(card(gid, m, players));
     } catch (e) { /* überspringen */ }
   }
   if (!container.children.length) $('empty').hidden = false;
 }
 
-function card(gid, m) {
+function card(gid, m, players) {
   const slides = (m.baseLayer && m.baseLayer.slides) || [];
   const thumb = slides.length ? `groups/${gid}/${slides[0].file}` : '';
   const el = document.createElement('div');
@@ -65,6 +77,7 @@ function card(gid, m) {
       <div class="sub">${esc(gid)}</div>
       <div class="stats"><span>🖼 ${slides.length} Folien</span><span>🕒 ${fmtDate(m.version)}</span></div>
       <div class="sched">🗓 ${esc(scheduleSummary(m.schedule || {}))}</div>
+      ${liveStatusHtml(players, m.version)}
       ${warnHtml(m.warnings)}
       <div class="actions">
         <a class="btn edit" href="${esc(m.editUrl || '#')}" target="_blank" rel="noopener">✏️ Folien</a>
@@ -82,6 +95,31 @@ function card(gid, m) {
 function warnHtml(ws) {
   if (!ws || !ws.length) return '';
   return `<div class="warnings">⚠ ${ws.map(esc).join('<br>')}</div>`;
+}
+
+// Live-Status der real gemeldeten Bildschirme (aus dem Heartbeat)
+function liveStatusHtml(players, currentVersion) {
+  if (players === null) return '<div class="livestatus muted">⚪ Live-Status nicht erreichbar</div>';
+  if (!players.length) return '<div class="livestatus muted">📺 Noch kein Bildschirm gemeldet</div>';
+  const now = Date.now();
+  const rows = players.slice().sort((a, b) => (a.playerId > b.playerId ? 1 : -1)).map((p) => {
+    const seen = Date.parse(p.lastSeen);
+    const online = (now - seen) < ONLINE_MS;
+    const dot = online ? '🟢' : '🔴';
+    const verNote = (p.version && currentVersion && p.version !== currentVersion) ? ' · ⚠ alte Version' : '';
+    return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${verNote}</div>`;
+  }).join('');
+  return `<div class="livestatus">${rows}</div>`;
+}
+function relTime(ms) {
+  if (!ms) return '–';
+  const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
+  if (s < 90) return 'gerade eben';
+  const min = Math.round(s / 60);
+  if (min < 90) return `vor ${min} Min`;
+  const h = Math.round(min / 60);
+  if (h < 36) return `vor ${h} Std`;
+  return `vor ${Math.round(h / 24)} Tagen`;
 }
 function scheduleSummary(s) {
   if (!s || !Object.keys(s).length) return 'kein Zeitplan';

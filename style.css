@@ -32,6 +32,9 @@ main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
 .card .stats { display: flex; gap: 14px; font-size: 13px; color: #374151; }
 .card .sched, .card .players { font-size: 12px; color: var(--grau); }
 .warnings { font-size: 12px; color: #92400e; background: #fef3c7; padding: 6px 8px; border-radius: 6px; }
+.livestatus { font-size: 12px; display: flex; flex-direction: column; gap: 2px; }
+.livestatus.muted { color: var(--grau); }
+.livestatus .pl { color: #374151; }
 .actions { margin-top: auto; display: flex; gap: 8px; padding-top: 6px; }
 .btn {
   flex: 1; text-align: center; padding: 8px 10px; border-radius: 8px;
