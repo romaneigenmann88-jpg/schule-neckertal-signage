@@ -14,8 +14,10 @@ on:
   push:
     paths:
       - 'groups/**'
+      - 'admin/**'
       - 'tools/build_manifest.py'
       - 'tools/normalize_slides.py'
+      - 'tools/make_groups_index.py'
       - '.github/workflows/render-publish.yml'
 
 permissions:
