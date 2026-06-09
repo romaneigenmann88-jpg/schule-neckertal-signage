@@ -1,0 +1,72 @@
+{
+  "groupId": "STPETERZELL_EINGANG",
+  "title": "St. Peterzell – Eingang",
+  "version": "2026-06-09T08:20:41Z",
+  "sourceHash": "e852c2d18c8c58001b5c6edc691f7c1aca73aa43e8e94f0c07690820a697d2c6",
+  "players": [
+    "STP_SCREEN_01"
+  ],
+  "editUrl": "https://docs.google.com/presentation/d/1kuY1Fun8uBMWQs4IZnuNqXlE1EhJGnCE4D4A78VuMis/edit",
+  "defaultSlideDurationSeconds": 12,
+  "schedule": {
+    "monday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "tuesday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "wednesday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "thursday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "friday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "saturday": {
+      "active": false
+    },
+    "sunday": {
+      "active": false
+    },
+    "offMode": "hdmi_off"
+  },
+  "baseLayer": {
+    "type": "renderedPowerPoint",
+    "slides": [
+      {
+        "file": "slides/2026-06-09T08-20-41Z/slide-001.png",
+        "durationSeconds": 5,
+        "sourceSlideNumber": 1
+      },
+      {
+        "file": "slides/2026-06-09T08-20-41Z/slide-002.png",
+        "durationSeconds": 5,
+        "sourceSlideNumber": 2
+      }
+    ]
+  },
+  "overlayLayer": {
+    "showClock": true,
+    "showDate": true,
+    "clockPosition": "top-right",
+    "datePosition": "top-center",
+    "theme": "transparent-dark"
+  },
+  "tickerLayer": {
+    "active": false,
+    "text": ""
+  },
+  "warnings": []
+}
