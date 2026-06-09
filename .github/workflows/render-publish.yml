@@ -87,6 +87,7 @@ jobs:
           # Admin-Konsole als Pages-Root + Setup-Skript mitveroeffentlichen
           cp -r admin/. publish/
           cp pi/setup.sh publish/setup.sh
+          cp pi/add-heartbeat.sh publish/add-heartbeat.sh
           # groups.json (Index fuer die Admin-Konsole)
           python3 tools/make_groups_index.py "$VERSION"
           echo "proceed=$proceed" >> "$GITHUB_OUTPUT"
