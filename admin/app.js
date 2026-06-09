@@ -65,13 +65,13 @@ function card(gid, m) {
       <div class="sub">${esc(gid)}</div>
       <div class="stats"><span>🖼 ${slides.length} Folien</span><span>🕒 ${fmtDate(m.version)}</span></div>
       <div class="sched">🗓 ${esc(scheduleSummary(m.schedule || {}))}</div>
-      <div class="players">📺 ${esc((m.players || []).join(', ') || '–')} <button class="addscreen-link">+ Bildschirm</button></div>
       ${warnHtml(m.warnings)}
       <div class="actions">
         <a class="btn edit" href="${esc(m.editUrl || '#')}" target="_blank" rel="noopener">✏️ Folien</a>
         <button class="btn settings">⚙️ Einstellungen</button>
         <button class="btn ghost preview">👁</button>
       </div>
+      <button class="addscreen-link wide">➕ Bildschirm hinzufügen</button>
     </div>`;
   el.querySelector('.preview').addEventListener('click', () => openPreview(gid, m));
   el.querySelector('.settings').addEventListener('click', () => openSettings(gid, m));

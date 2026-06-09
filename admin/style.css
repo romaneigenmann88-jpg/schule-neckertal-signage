@@ -67,6 +67,7 @@ main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
 
 .addscreen-link { background: none; border: 1px solid #cbd5e1; color: var(--blau); border-radius: 6px; font-size: 11px; padding: 1px 6px; cursor: pointer; }
 .addscreen-link:hover { background: #eef2f7; }
+.addscreen-link.wide { width: 100%; margin-top: 8px; padding: 7px; font-size: 13px; border-style: dashed; }
 #addscreen .modal-box { background: #fff; color: #1f2937; width: min(94vw, 600px); }
 #addscreen h2 { margin: 0 0 6px; }
 #addscreen label { display: block; margin: 10px 0 4px; font-size: 14px; }
