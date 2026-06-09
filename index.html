@@ -16,7 +16,7 @@
   <main>
     <div id="groups" class="groups"></div>
     <p id="empty" hidden>Keine Gruppen gefunden.</p>
-    <p class="hint">Inhalte werden in <strong>Google Slides</strong> bearbeitet. Änderungen erscheinen automatisch auf den Bildschirmen.</p>
+    <p class="hint">Inhalte (Folien) werden in <strong>Google Slides</strong> bearbeitet, Einstellungen hier. Änderungen erscheinen nach wenigen Minuten automatisch auf den Bildschirmen.</p>
   </main>
 
   <!-- Vorschau-Modal -->
@@ -31,6 +31,37 @@
         <span id="preview-count"></span>
         <button id="preview-next">›</button>
       </div>
+    </div>
+  </div>
+
+  <!-- Einstellungen-Modal -->
+  <div id="settings" class="modal" hidden>
+    <div class="modal-bg"></div>
+    <div class="modal-box settings-box">
+      <button id="settings-close" class="close" title="Schliessen">×</button>
+      <h2 id="settings-title">Einstellungen</h2>
+      <form id="settings-form" class="settings-form" onsubmit="return false"></form>
+      <div class="settings-actions">
+        <button type="button" id="settings-cancel" class="btn ghost">Abbrechen</button>
+        <button type="button" id="settings-save" class="btn edit">💾 Speichern</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Speichern-Anleitung -->
+  <div id="saveinfo" class="modal" hidden>
+    <div class="modal-bg"></div>
+    <div class="modal-box">
+      <button id="saveinfo-close" class="close" title="Schliessen">×</button>
+      <h2>💾 Speichern auf GitHub</h2>
+      <ol class="steps">
+        <li>Die Einstellungen sind <strong>in die Zwischenablage kopiert</strong>.</li>
+        <li>GitHub öffnet sich (mit deinem Login). Klick ins Textfeld, <strong>alles markieren</strong> (Strg+A) und <strong>einfügen</strong> (Strg+V).</li>
+        <li>Unten grün <strong>„Commit changes"</strong> klicken.</li>
+      </ol>
+      <p class="muted">Falls das Kopieren nicht klappte – hier der Inhalt zum manuellen Kopieren:</p>
+      <textarea id="saveinfo-json" class="json" readonly></textarea>
+      <a id="saveinfo-open" class="btn edit" href="#" target="_blank" rel="noopener">↗ Auf GitHub öffnen</a>
     </div>
   </div>
 
