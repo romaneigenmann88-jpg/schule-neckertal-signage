@@ -59,6 +59,13 @@ html, body {
 .theme-light             { color: #111; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(4px); }
 .theme-transparent-dark  { color: #000; background: transparent; text-shadow: 0 0 6px rgba(255, 255, 255, 0.6); }
 .theme-transparent-light { color: #fff; background: transparent; text-shadow: 0 0 6px rgba(0, 0, 0, 0.6); }
+/* auto: weisse Schrift mit schwarzer Kontur – auf hellem UND dunklem Hintergrund lesbar */
+.theme-auto {
+  color: #fff; background: transparent;
+  text-shadow:
+    -2px -2px 0 #000, 2px -2px 0 #000, -2px 2px 0 #000, 2px 2px 0 #000,
+    0 0 3px #000, 0 0 6px rgba(0, 0, 0, 0.85);
+}
 
 /* ---------- Layer 3: Ticker ---------- */
 #ticker {

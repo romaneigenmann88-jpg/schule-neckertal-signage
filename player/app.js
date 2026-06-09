@@ -197,8 +197,8 @@ function applyOverlayConfig() {
   const o = manifest.overlayLayer || {};
   const POSITIONS = ['top-left', 'top-center', 'top-right',
                      'bottom-left', 'bottom-center', 'bottom-right'];
-  const THEMES = ['dark', 'light', 'transparent-dark', 'transparent-light'];
-  const theme = THEMES.includes(o.theme) ? o.theme : 'dark';
+  const THEMES = ['auto', 'dark', 'light', 'transparent-dark', 'transparent-light'];
+  const theme = THEMES.includes(o.theme) ? o.theme : 'auto';
 
   // Uhr und Datum werden unabhaengig voneinander positioniert.
   positionOverlayItem(dom.overlayDate,  o.showDate,  o.datePosition,  'top-center', theme, POSITIONS);

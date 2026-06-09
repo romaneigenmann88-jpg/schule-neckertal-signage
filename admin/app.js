@@ -18,8 +18,11 @@ const POSITIONS = [
   ['bottom-left', 'unten links'], ['bottom-center', 'unten Mitte'], ['bottom-right', 'unten rechts'],
 ];
 const THEMES = [
-  ['transparent-dark', 'transparent / schwarze Schrift'], ['transparent-light', 'transparent / weisse Schrift'],
-  ['dark', 'dunkler Kasten'], ['light', 'heller Kasten'],
+  ['auto', 'automatisch – immer lesbar (empfohlen)'],
+  ['dark', 'dunkler Kasten / weisse Schrift'],
+  ['light', 'heller Kasten / schwarze Schrift'],
+  ['transparent-dark', 'transparent / schwarze Schrift'],
+  ['transparent-light', 'transparent / weisse Schrift'],
 ];
 const OFFMODES = [['hdmi_off', 'HDMI aus (TV-Standby)'], ['black_screen', 'schwarzer Bildschirm']];
 

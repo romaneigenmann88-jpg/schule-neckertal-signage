@@ -1,19 +1,45 @@
 {
   "groupId": "STPETERZELL_EINGANG",
   "title": "St. Peterzell – Eingang",
-  "players": ["STP_SCREEN_01"],
+  "players": [
+    "STP_SCREEN_01"
+  ],
   "source": {
     "googleSlidesId": "1kuY1Fun8uBMWQs4IZnuNqXlE1EhJGnCE4D4A78VuMis"
   },
   "defaultSlideDurationSeconds": 12,
   "schedule": {
-    "monday":    { "active": true,  "from": "07:00", "until": "18:00" },
-    "tuesday":   { "active": true,  "from": "07:00", "until": "18:00" },
-    "wednesday": { "active": true,  "from": "07:00", "until": "18:00" },
-    "thursday":  { "active": true,  "from": "07:00", "until": "18:00" },
-    "friday":    { "active": true,  "from": "07:00", "until": "18:00" },
-    "saturday":  { "active": false },
-    "sunday":    { "active": false },
+    "monday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "tuesday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "wednesday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "thursday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "friday": {
+      "active": true,
+      "from": "07:00",
+      "until": "18:00"
+    },
+    "saturday": {
+      "active": false
+    },
+    "sunday": {
+      "active": false
+    },
     "offMode": "hdmi_off"
   },
   "overlayLayer": {
@@ -21,7 +47,7 @@
     "showDate": true,
     "clockPosition": "top-right",
     "datePosition": "top-center",
-    "theme": "transparent-dark"
+    "theme": "auto"
   },
   "tickerLayer": {
     "active": false,
