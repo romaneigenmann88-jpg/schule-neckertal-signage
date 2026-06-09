@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Schule Neckertal – Signage Admin</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div class="brand"><span class="b1">SCHULE</span> <span class="b2">NECKERTAL</span></div>
+    <h1>Digital Signage – Adminkonsole</h1>
+    <div id="meta" class="meta">lädt …</div>
+  </header>
+
+  <main>
+    <div id="groups" class="groups"></div>
+    <p id="empty" hidden>Keine Gruppen gefunden.</p>
+    <p class="hint">Inhalte werden in <strong>Google Slides</strong> bearbeitet. Änderungen erscheinen automatisch auf den Bildschirmen.</p>
+  </main>
+
+  <!-- Vorschau-Modal -->
+  <div id="preview" class="modal" hidden>
+    <div class="modal-bg"></div>
+    <div class="modal-box">
+      <button id="preview-close" class="close" title="Schliessen">×</button>
+      <div id="preview-title" class="preview-title"></div>
+      <img id="preview-img" class="preview-img" alt="" />
+      <div class="preview-nav">
+        <button id="preview-prev">‹</button>
+        <span id="preview-count"></span>
+        <button id="preview-next">›</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js" defer></script>
+</body>
+</html>

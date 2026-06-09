@@ -96,15 +96,22 @@ def main():
             "sourceSlideNumber": src_no,
         })
 
+    gid_src = config.get("source", {}).get("googleSlidesId", "")
+    edit_url = f"https://docs.google.com/presentation/d/{gid_src}/edit" if gid_src else ""
+
     manifest = {
         "groupId": config["groupId"],
+        "title": config.get("title", config["groupId"]),
         "version": version,
         "sourceHash": args.source_hash,
+        "players": config.get("players", []),
+        "editUrl": edit_url,
         "defaultSlideDurationSeconds": default,
         "schedule": config.get("schedule", {}),
         "baseLayer": {"type": "renderedPowerPoint", "slides": slides},
         "overlayLayer": config.get("overlayLayer", {}),
         "tickerLayer": config.get("tickerLayer", {"active": False, "text": ""}),
+        "warnings": warnings,
     }
 
     os.makedirs(os.path.dirname(os.path.abspath(args.output)), exist_ok=True)

@@ -43,7 +43,6 @@ jobs:
           set -e
           rm -rf publish && mkdir -p publish
           : > publish/.nojekyll
-          printf '%s\n' '<!doctype html><meta charset=utf-8><title>Schule Neckertal Signage</title><h1>Signage</h1><p>Gruppen unter <code>/groups/&lt;groupId&gt;/manifest.json</code></p>' > publish/index.html
           VERSION=$(date -u +%Y-%m-%dT%H:%M:%SZ)
           SAFEVER="${VERSION//:/-}"
           changed=false
@@ -83,6 +82,16 @@ jobs:
             schedule) [ "$changed" = "true" ] && proceed=true ;;
             *) proceed=true ;;
           esac
+          # Admin-Konsole als Pages-Root mitveroeffentlichen
+          cp -r admin/. publish/
+          # groups.json (Index fuer die Admin-Konsole)
+          python3 - "$VERSION" <<'PY'
+import json, glob, os, sys
+ids = sorted(os.path.basename(p.rstrip("/")) for p in glob.glob("publish/groups/*/"))
+json.dump({"generated": sys.argv[1], "groups": ids},
+          open("publish/groups.json", "w"), indent=2)
+print("groups.json:", ids)
+PY
           echo "proceed=$proceed" >> "$GITHUB_OUTPUT"
           echo "Aenderung: $changed -> veroeffentlichen: $proceed"
 
