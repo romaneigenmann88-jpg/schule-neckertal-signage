@@ -57,7 +57,7 @@ html, body {
    hellem Schein für Lesbarkeit auf dunklen Bildbereichen). */
 .theme-dark              { color: #fff; background: rgba(0, 0, 0, 0.45); backdrop-filter: blur(4px); }
 .theme-light             { color: #111; background: rgba(255, 255, 255, 0.6); backdrop-filter: blur(4px); }
-.theme-transparent-dark  { color: #000; background: transparent; text-shadow: 0 0 6px rgba(255, 255, 255, 0.6); }
+.theme-transparent-dark  { color: #000; background: transparent; }
 .theme-transparent-light { color: #fff; background: transparent; text-shadow: 0 0 6px rgba(0, 0, 0, 0.6); }
 /* auto: weisse Schrift mit schwarzer Kontur – auf hellem UND dunklem Hintergrund lesbar */
 .theme-auto {

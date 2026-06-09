@@ -44,7 +44,7 @@
     "showDate": true,
     "clockPosition": "top-right",
     "datePosition": "top-center",
-    "theme": "auto"
+    "theme": "transparent-dark"
   },
   "tickerLayer": {
     "active": false,
