@@ -194,14 +194,31 @@ mkdir -p "$USER_HOME/.config/labwc"
 cat > "$USER_HOME/.config/labwc/autostart" <<AUTO
 #!/bin/sh
 # Schule Neckertal Signage - Kiosk-Autostart (labwc/Wayland) mit Watchdog.
+# Pausierbar fuer Wartung: 'kiosk-off' (zum Desktop) / 'kiosk-on' (zurueck).
 (
-  while true; do
+  while [ ! -e /tmp/signage-kiosk-stop ]; do
     chromium --kiosk --ozone-platform=wayland --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-translate --disable-features=Translate,TranslateUI --no-first-run --no-default-browser-check --password-store=basic --check-for-update-interval=31536000 --autoplay-policy=no-user-gesture-required http://localhost:$PORT/ >/dev/null 2>&1
     sleep 3
   done
 ) &
 AUTO
 chmod +x "$USER_HOME/.config/labwc/autostart"
+
+# Wartungsbefehle: Kiosk verlassen / zurueck (fuer Updates am Bildschirm)
+sudo tee /usr/local/bin/kiosk-off >/dev/null <<'KOFF'
+#!/bin/sh
+touch /tmp/signage-kiosk-stop
+pkill chromium 2>/dev/null
+echo "Kiosk pausiert – du bist auf dem Desktop. Zurueck mit:  kiosk-on"
+KOFF
+sudo tee /usr/local/bin/kiosk-on >/dev/null <<KON
+#!/bin/sh
+rm -f /tmp/signage-kiosk-stop
+export XDG_RUNTIME_DIR=/run/user/\$(id -u) WAYLAND_DISPLAY=wayland-0
+setsid sh "$USER_HOME/.config/labwc/autostart" >/dev/null 2>&1 < /dev/null
+echo "Kiosk laeuft wieder."
+KON
+sudo chmod +x /usr/local/bin/kiosk-off /usr/local/bin/kiosk-on
 
 sudo raspi-config nonint do_blanking 1 || true
 
