@@ -65,6 +65,27 @@
     </div>
   </div>
 
+  <!-- Bildschirm hinzufügen -->
+  <div id="addscreen" class="modal" hidden>
+    <div class="modal-bg"></div>
+    <div class="modal-box">
+      <button id="addscreen-close" class="close" title="Schliessen">×</button>
+      <h2>➕ Bildschirm (Raspberry Pi) hinzufügen</h2>
+      <p class="muted">Gruppe: <strong id="addscreen-group"></strong></p>
+      <ol class="steps">
+        <li>Pi mit dem <strong>Raspberry Pi Imager</strong> flashen: Pi OS (64-bit, Desktop), Hostname + Benutzer/Passwort, <strong>SSH aktivieren</strong>, WLAN/Zeitzone.</li>
+        <li>Pi starten, ein <strong>Terminal</strong> öffnen (oder per SSH verbinden).</li>
+        <li>Player-Namen vergeben und den <strong>einen Befehl</strong> ausführen (Passwort eingeben, wenn gefragt):</li>
+      </ol>
+      <label>Player-Name (eindeutig je Bildschirm)
+        <input type="text" id="addscreen-player" />
+      </label>
+      <textarea id="addscreen-cmd" class="json" readonly></textarea>
+      <button id="addscreen-copy" class="btn edit">📋 Befehl kopieren</button>
+      <p class="muted">Danach am Pi: <code>sudo reboot</code>. Der Bildschirm zeigt dann automatisch diese Gruppe.</p>
+    </div>
+  </div>
+
   <script src="app.js" defer></script>
 </body>
 </html>

@@ -84,8 +84,9 @@ jobs:
             schedule) [ "$changed" = "true" ] && proceed=true ;;
             *) proceed=true ;;
           esac
-          # Admin-Konsole als Pages-Root mitveroeffentlichen
+          # Admin-Konsole als Pages-Root + Setup-Skript mitveroeffentlichen
           cp -r admin/. publish/
+          cp pi/setup.sh publish/setup.sh
           # groups.json (Index fuer die Admin-Konsole)
           python3 tools/make_groups_index.py "$VERSION"
           echo "proceed=$proceed" >> "$GITHUB_OUTPUT"

@@ -65,6 +65,16 @@ main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
 #saveinfo h2 { margin: 0 0 8px; }
 #saveinfo .btn { display: inline-block; margin-top: 12px; }
 
+.addscreen-link { background: none; border: 1px solid #cbd5e1; color: var(--blau); border-radius: 6px; font-size: 11px; padding: 1px 6px; cursor: pointer; }
+.addscreen-link:hover { background: #eef2f7; }
+#addscreen .modal-box { background: #fff; color: #1f2937; width: min(94vw, 600px); }
+#addscreen h2 { margin: 0 0 6px; }
+#addscreen label { display: block; margin: 10px 0 4px; font-size: 14px; }
+#addscreen input[type=text] { width: 100%; padding: 7px 9px; border: 1px solid #d1d5db; border-radius: 7px; font-size: 14px; }
+#addscreen .json { height: 90px; }
+#addscreen .btn { display: inline-block; margin-top: 10px; }
+#addscreen code { background: #eef2f7; padding: 1px 5px; border-radius: 4px; }
+
 /* Modal */
 .modal { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 50; }
 .modal[hidden] { display: none; }
