@@ -97,13 +97,41 @@ function scheduleSummary(s) {
 // ============================================================
 //  Vorschau
 // ============================================================
-const pv = { slides: [], i: 0, timer: null, base: '' };
+const pv = { slides: [], i: 0, timer: null, clockTimer: null, base: '' };
+const PV_POS = ['top-left', 'top-center', 'top-right', 'bottom-left', 'bottom-center', 'bottom-right'];
+const PV_THEMES = ['auto', 'dark', 'light', 'transparent-dark', 'transparent-light'];
+
 function openPreview(gid, m) {
   pv.slides = (m.baseLayer && m.baseLayer.slides) || [];
   pv.base = `groups/${gid}/`;
   $('preview-title').textContent = m.title || gid;
+  applyPvOverlay(m);
   $('preview').hidden = false;
-  showPv(0); autoAdvance();
+  showPv(0); autoAdvance(); startPvClock();
+}
+// Overlay (Layer 2) + Ticker (Layer 3) wie auf dem echten Player darstellen
+function applyPvOverlay(m) {
+  const o = m.overlayLayer || {};
+  const theme = PV_THEMES.includes(o.theme) ? o.theme : 'auto';
+  pvSetOverlay($('pv-date'), o.showDate, o.datePosition, 'top-center', theme);
+  pvSetOverlay($('pv-clock'), o.showClock, o.clockPosition, 'top-right', theme);
+  const t = m.tickerLayer || {};
+  if (t.active && t.text) { $('pv-ticker-txt').textContent = t.text; $('pv-ticker').hidden = false; }
+  else { $('pv-ticker').hidden = true; }
+}
+function pvSetOverlay(el, show, pos, fb, theme) {
+  if (!show) { el.hidden = true; return; }
+  el.hidden = false;
+  el.className = 'pv-overlay pos-' + (PV_POS.includes(pos) ? pos : fb) + ' theme-' + theme;
+}
+function startPvClock() {
+  clearInterval(pv.clockTimer);
+  const tick = () => {
+    const now = new Date();
+    $('pv-clock-txt').textContent = now.toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+    $('pv-date-txt').textContent = now.toLocaleDateString('de-CH', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+  };
+  tick(); pv.clockTimer = setInterval(tick, 1000);
 }
 function showPv(i) {
   if (!pv.slides.length) return;
@@ -117,7 +145,7 @@ function autoAdvance() {
   const d = (pv.slides[pv.i] && pv.slides[pv.i].durationSeconds) || 5;
   pv.timer = setTimeout(() => { showPv(pv.i + 1); autoAdvance(); }, Math.min(d, 5) * 1000);
 }
-function closePv() { $('preview').hidden = true; clearTimeout(pv.timer); }
+function closePv() { $('preview').hidden = true; clearTimeout(pv.timer); clearInterval(pv.clockTimer); }
 $('preview-close').addEventListener('click', closePv);
 document.querySelector('#preview .modal-bg').addEventListener('click', closePv);
 $('preview-prev').addEventListener('click', () => { showPv(pv.i - 1); autoAdvance(); });

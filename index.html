@@ -26,7 +26,12 @@
     <div class="modal-box">
       <button id="preview-close" class="close" title="Schliessen">×</button>
       <div id="preview-title" class="preview-title"></div>
-      <img id="preview-img" class="preview-img" alt="" />
+      <div class="preview-stage" id="preview-stage">
+        <img id="preview-img" class="preview-img" alt="" />
+        <div id="pv-date" class="pv-overlay" hidden><span id="pv-date-txt"></span></div>
+        <div id="pv-clock" class="pv-overlay" hidden><span id="pv-clock-txt"></span></div>
+        <div id="pv-ticker" class="pv-ticker" hidden><span id="pv-ticker-txt"></span></div>
+      </div>
       <div class="preview-nav">
         <button id="preview-prev">‹</button>
         <span id="preview-count"></span>
