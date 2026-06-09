@@ -65,7 +65,7 @@ function card(gid, m) {
       <div class="sub">${esc(gid)}</div>
       <div class="stats"><span>🖼 ${slides.length} Folien</span><span>🕒 ${fmtDate(m.version)}</span></div>
       <div class="sched">🗓 ${esc(scheduleSummary(m.schedule || {}))}</div>
-      <div class="players">📺 ${esc((m.players || []).join(', ') || '–')}</div>
+      <div class="players">📺 ${esc((m.players || []).join(', ') || '–')} <button class="addscreen-link">+ Bildschirm</button></div>
       ${warnHtml(m.warnings)}
       <div class="actions">
         <a class="btn edit" href="${esc(m.editUrl || '#')}" target="_blank" rel="noopener">✏️ Folien</a>
@@ -75,6 +75,7 @@ function card(gid, m) {
     </div>`;
   el.querySelector('.preview').addEventListener('click', () => openPreview(gid, m));
   el.querySelector('.settings').addEventListener('click', () => openSettings(gid, m));
+  el.querySelector('.addscreen-link').addEventListener('click', () => openAddScreen(gid, m));
   return el;
 }
 
@@ -230,6 +231,39 @@ $('settings-save').addEventListener('click', async () => {
 });
 $('saveinfo-close').addEventListener('click', () => { $('saveinfo').hidden = true; });
 document.querySelector('#saveinfo .modal-bg').addEventListener('click', () => { $('saveinfo').hidden = true; });
+
+// ============================================================
+//  Bildschirm (Pi) hinzufügen
+// ============================================================
+let addGid = null;
+function openAddScreen(gid, m) {
+  addGid = gid;
+  const players = m.players || [];
+  const last = players[players.length - 1];
+  const suggest = last
+    ? last.replace(/(\d+)$/, (s) => String(+s + 1).padStart(s.length, '0'))
+    : gid.split('_')[0] + '_SCREEN_01';
+  $('addscreen-group').textContent = m.title || gid;
+  $('addscreen-player').value = suggest;
+  updateAddCmd();
+  $('addscreen').hidden = false;
+}
+function updateAddCmd() {
+  const pid = ($('addscreen-player').value.trim() || 'SCREEN_01').replace(/\s+/g, '_');
+  const manifestUrl = new URL(`groups/${addGid}/manifest.json`, location.href).href;
+  const setupUrl = new URL('setup.sh', location.href).href;
+  $('addscreen-cmd').value = `curl -fsSL ${setupUrl} | PLAYER_ID=${pid} MANIFEST_URL=${manifestUrl} bash`;
+}
+$('addscreen-player').addEventListener('input', updateAddCmd);
+$('addscreen-copy').addEventListener('click', async () => {
+  try {
+    await navigator.clipboard.writeText($('addscreen-cmd').value);
+    const b = $('addscreen-copy'); b.textContent = '✓ kopiert';
+    setTimeout(() => { b.textContent = '📋 Befehl kopieren'; }, 1500);
+  } catch (e) { /* Textarea bleibt zum manuellen Kopieren */ }
+});
+$('addscreen-close').addEventListener('click', () => { $('addscreen').hidden = true; });
+document.querySelector('#addscreen .modal-bg').addEventListener('click', () => { $('addscreen').hidden = true; });
 
 // ============================================================
 //  Hilfen
