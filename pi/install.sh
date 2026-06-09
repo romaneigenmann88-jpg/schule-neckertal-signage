@@ -23,6 +23,7 @@ INSTALL_DIR="${INSTALL_DIR:-/opt/school-signage}"
 DAILY_REBOOT="${DAILY_REBOOT:-04:00}"              # "" = täglichen Reboot aus
 OUTPUT="${SIGNAGE_OUTPUT:-HDMI-A-1}"
 MANIFEST_URL="${MANIFEST_URL:-https://romaneigenmann88-jpg.github.io/schule-neckertal-signage/groups/OZN_EINGANG/manifest.json}"
+HEARTBEAT_URL="${HEARTBEAT_URL:-https://signage-heartbeat.schule-neckertal.workers.dev}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
@@ -65,6 +66,8 @@ cp "$REPO_ROOT/pi/sync.py" "$INSTALL_DIR/bin/sync.py"
 chmod +x "$INSTALL_DIR/bin/sync.py"
 cp "$REPO_ROOT/pi/display-schedule.sh" "$INSTALL_DIR/bin/display-schedule.sh"
 chmod +x "$INSTALL_DIR/bin/display-schedule.sh"
+cp "$REPO_ROOT/pi/heartbeat.sh" "$INSTALL_DIR/bin/heartbeat.sh"
+chmod +x "$INSTALL_DIR/bin/heartbeat.sh"
 
 # ---------- 5. device.json (Konfiguration) ----------
 echo "[5/10] Konfiguration (device.json) ..."
@@ -72,6 +75,7 @@ cat > "$INSTALL_DIR/config/device.json" <<JSON
 {
   "playerId": "$PLAYER_ID",
   "manifestUrl": "$MANIFEST_URL",
+  "heartbeatUrl": "$HEARTBEAT_URL",
   "dataDir": "$INSTALL_DIR/data",
   "webDir": "$INSTALL_DIR/web",
   "keepVersions": 3,
@@ -141,6 +145,31 @@ Description=Schule Neckertal Signage - HDMI-Zeitsteuerung jede Minute
 [Timer]
 OnBootSec=40s
 OnUnitActiveSec=1min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+# Heartbeat (meldet Status an den Sammelpunkt, alle 5 Min)
+sudo tee /etc/systemd/system/signage-heartbeat.service >/dev/null <<UNIT
+[Unit]
+Description=Schule Neckertal Signage - Heartbeat
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=$SIGNAGE_USER
+ExecStart=/bin/sh $INSTALL_DIR/bin/heartbeat.sh
+UNIT
+sudo tee /etc/systemd/system/signage-heartbeat.timer >/dev/null <<'UNIT'
+[Unit]
+Description=Schule Neckertal Signage - Heartbeat alle 5 Minuten
+
+[Timer]
+OnBootSec=50s
+OnUnitActiveSec=5min
 Persistent=true
 
 [Install]
@@ -223,6 +252,7 @@ fi
 # Jetzt den Sync-Timer aktivieren (künftige Aktualisierungen alle 5 Min)
 sudo systemctl enable --now signage-sync.timer >/dev/null
 sudo systemctl enable --now signage-display.timer >/dev/null
+sudo systemctl enable --now signage-heartbeat.timer >/dev/null
 
 echo
 echo "== Installation abgeschlossen =="
