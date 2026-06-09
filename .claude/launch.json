@@ -6,6 +6,12 @@
       "runtimeExecutable": "python",
       "runtimeArgs": ["-m", "http.server", "8099", "--directory", "player"],
       "port": 8099
+    },
+    {
+      "name": "adminpreview",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-m", "http.server", "8098", "--directory", "gtest/adminpreview"],
+      "port": 8098
     }
   ]
 }
