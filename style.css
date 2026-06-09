@@ -98,7 +98,7 @@ main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
 .pv-overlay.theme-auto { color: #fff; text-shadow: -1.5px -1.5px 0 #000, 1.5px -1.5px 0 #000, -1.5px 1.5px 0 #000, 1.5px 1.5px 0 #000, 0 0 3px #000; }
 .pv-overlay.theme-dark { color: #fff; background: rgba(0,0,0,.45); }
 .pv-overlay.theme-light { color: #111; background: rgba(255,255,255,.6); }
-.pv-overlay.theme-transparent-dark { color: #000; text-shadow: 0 0 5px rgba(255,255,255,.7); }
+.pv-overlay.theme-transparent-dark { color: #000; }
 .pv-overlay.theme-transparent-light { color: #fff; text-shadow: 0 0 5px rgba(0,0,0,.7); }
 
 /* Layer 3: Ticker */
