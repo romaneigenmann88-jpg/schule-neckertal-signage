@@ -1,7 +1,8 @@
 #!/bin/sh
 # Schule Neckertal Signage – Bildschirm-Zeitsteuerung (HDMI-Off via CEC).
-# Liest Zeitplan + offMode aus dem aktiven Manifest. Nur wenn offMode=hdmi_off:
-# sendet ausserhalb der Betriebszeit CEC-Standby an den Bildschirm und innerhalb
+# Liest Zeitplan + offMode. Quelle bevorzugt der Worker (Live-Einstellungen aus
+# der Admin-Konsole), sonst das aktive Manifest als Fallback. Nur wenn
+# offMode=hdmi_off: sendet ausserhalb der Betriebszeit CEC-Standby und innerhalb
 # CEC-"Einschalten". CEC ist der zuverlässige Weg für Fernseher/Displays.
 #
 # Auf Geräten OHNE CEC (z. B. PC-Monitore) bleibt das wirkungslos und stört
@@ -9,13 +10,42 @@
 # universellen Fallback.
 
 MAN="${SIGNAGE_MANIFEST:-/opt/school-signage/web/content/manifest.json}"
+DEV="${SIGNAGE_DEVICE:-/opt/school-signage/config/device.json}"
 CEC="${SIGNAGE_CEC:-/dev/cec0}"
 
-desired=$(python3 - "$MAN" <<'PY'
-import sys, json, datetime
+# Worker-URL + groupId bestimmen, dann Live-Einstellungen ziehen (best effort).
+HB=$(python3 -c "import json;print(json.load(open('$DEV')).get('heartbeatUrl',''))" 2>/dev/null || echo "")
+GID=$(python3 -c "import json;print(json.load(open('$MAN')).get('groupId',''))" 2>/dev/null || echo "")
+SETTINGS=""
+if [ -n "$HB" ] && [ -n "$GID" ]; then
+  SETTINGS=$(curl -fsS --max-time 5 "$HB/settings/$GID?t=$(date +%s)" 2>/dev/null || echo "")
+fi
+
+# desired = on|off|skip. Nimmt den Zeitplan aus den Worker-Einstellungen, wenn
+# vorhanden, sonst aus dem Manifest. "skip" wenn offMode != hdmi_off.
+desired=$(SETTINGS_JSON="$SETTINGS" python3 - "$MAN" <<'PY'
+import sys, os, json, datetime
+
+def schedule_from_settings():
+    raw = os.environ.get("SETTINGS_JSON", "").strip()
+    if not raw:
+        return None
+    try:
+        data = json.loads(raw)
+    except Exception:
+        return None
+    s = data.get("settings", data)        # GET liefert {groupId,settings,updated}
+    sch = s.get("schedule")
+    return sch if isinstance(sch, dict) and sch else None
+
+def schedule_from_manifest():
+    try:
+        return json.load(open(sys.argv[1])).get("schedule", {})
+    except Exception:
+        return {}
+
 try:
-    d = json.load(open(sys.argv[1]))
-    sch = d.get("schedule", {})
+    sch = schedule_from_settings() or schedule_from_manifest()
     if sch.get("offMode") != "hdmi_off":
         print("skip"); raise SystemExit
     now = datetime.datetime.now()

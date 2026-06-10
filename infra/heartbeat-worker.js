@@ -1,10 +1,22 @@
-// Schule Neckertal – Signage Heartbeat (Cloudflare Worker)
+// Schule Neckertal – Signage Worker (Cloudflare)
 // ------------------------------------------------------------
-// Winziger, gratis Sammelpunkt für den Bildschirm-Status.
-//   POST { playerId, groupId, version, hostname }  -> speichert mit Zeitstempel
-//   GET                                            -> { players: [...] }
-// Benötigt eine KV-Namespace-Bindung mit dem Variablennamen  HEARTBEATS
-// Keine Authentifizierung nötig (unkritische Statusdaten); CORS offen.
+// Winziger, gratis Sammelpunkt mit zwei Aufgaben:
+//
+//  1) Heartbeat (Bildschirm-Status)
+//     POST /            { playerId, groupId, version, hostname }  -> speichert mit Zeitstempel
+//     GET  /                                                      -> { players: [...] }
+//
+//  2) Einstellungen (Zeiten / Laufband / Uhr-Anzeige, je Gruppe)
+//     POST /settings    { groupId, settings }                    -> speichert die Einstellungen
+//     GET  /settings/<groupId>                                   -> die gespeicherten Einstellungen ({} wenn keine)
+//
+// Speicher: KV-Namespace-Bindung mit dem Variablennamen  HEARTBEATS
+//   p:<playerId>  Heartbeats (7 Tage TTL)
+//   s:<groupId>   Einstellungen (dauerhaft, kein Ablauf)
+//
+// Keine Authentifizierung (interne, unkritische Daten); CORS offen.
+// Damit braucht es im Alltag KEINE Tokens – Admin speichert per POST,
+// der Pi liest per GET.
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -16,6 +28,38 @@ export default {
   async fetch(request, env) {
     if (request.method === 'OPTIONS') return new Response(null, { headers: CORS });
 
+    const url = new URL(request.url);
+    const path = url.pathname.replace(/\/+$/, '');   // ohne Schraegstrich am Ende
+
+    // ----------------------------------------------------------
+    //  Einstellungen je Gruppe
+    // ----------------------------------------------------------
+    if (path === '/settings' || path.startsWith('/settings/')) {
+      // groupId aus dem Pfad (/settings/<gid>) oder Query (?group=<gid>)
+      let gid = path.startsWith('/settings/') ? decodeURIComponent(path.slice('/settings/'.length)) : '';
+
+      if (request.method === 'POST') {
+        let body;
+        try { body = await request.json(); } catch { return resp('bad json', 400); }
+        gid = String(body.groupId || gid || '').slice(0, 100);
+        if (!gid) return resp('groupId fehlt', 400);
+        const settings = body.settings && typeof body.settings === 'object' ? body.settings : {};
+        const rec = { groupId: gid, settings, updated: new Date().toISOString() };
+        await env.HEARTBEATS.put('s:' + gid, JSON.stringify(rec));   // kein Ablauf
+        return json({ ok: true, groupId: gid, updated: rec.updated });
+      }
+
+      // GET -> gespeicherte Einstellungen (oder leeres Objekt)
+      gid = String(gid || url.searchParams.get('group') || '').slice(0, 100);
+      if (!gid) return json({});
+      const v = await env.HEARTBEATS.get('s:' + gid);
+      if (!v) return json({ groupId: gid, settings: {}, updated: null });
+      return new Response(v, { headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+
+    // ----------------------------------------------------------
+    //  Heartbeat (Status der Bildschirme)
+    // ----------------------------------------------------------
     if (request.method === 'POST') {
       let body;
       try { body = await request.json(); } catch { return resp('bad json', 400); }
@@ -40,12 +84,15 @@ export default {
       const v = await env.HEARTBEATS.get(k.name);
       if (v) players.push(JSON.parse(v));
     }
-    return new Response(JSON.stringify({ players }), {
-      headers: { ...CORS, 'Content-Type': 'application/json' },
-    });
+    return json({ players });
   },
 };
 
 function resp(text, status) {
   return new Response(text, { status, headers: CORS });
+}
+function json(obj, status = 200) {
+  return new Response(JSON.stringify(obj), {
+    status, headers: { ...CORS, 'Content-Type': 'application/json' },
+  });
 }

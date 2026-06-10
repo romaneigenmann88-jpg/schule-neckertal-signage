@@ -34,6 +34,15 @@ const MANIFEST_URL = CONTENT_BASE + 'manifest.json';
 // aktualisiert content/ im Hintergrund; bei neuer Version lädt der Player neu).
 const VERSION_CHECK_INTERVAL_MS = 60 * 1000;
 
+// Live-Einstellungen (Zeiten / Laufband / Uhr-Anzeige) kommen vom Worker –
+// ohne Token, ohne Neu-Rendern. Das Manifest bleibt der Fallback, falls der
+// Worker mal nicht erreichbar ist. Wird beim Start und danach regelmaessig
+// geholt; Aenderungen erscheinen ohne Neuladen (nur Overlay/Ticker/Zeitplan).
+const SETTINGS_BASE = 'https://signage-heartbeat.schule-neckertal.workers.dev';
+const SETTINGS_CHECK_INTERVAL_MS = 60 * 1000;
+// Felder, die per Worker live überschrieben werden dürfen (Quelle: Admin-Konsole).
+const LIVE_FIELDS = ['title', 'defaultSlideDurationSeconds', 'schedule', 'overlayLayer', 'tickerLayer'];
+
 // ---------- Zustand ----------
 let manifest = null;
 let loadedVersion = null;
@@ -70,6 +79,10 @@ async function start() {
   const ok = await loadManifest();
   if (!ok) return;              // Fehlermeldung wurde bereits gezeigt
 
+  // Live-Einstellungen vom Worker holen und ins Manifest mischen (vor dem
+  // ersten Anwenden), damit Overlay/Ticker/Zeitplan gleich aktuell sind.
+  await refreshLiveSettings(false);
+
   applyOverlayConfig();
   applyTickerConfig();
   await preloadSlides();
@@ -80,6 +93,44 @@ async function start() {
 
   // Auf neue Inhalte vom Sync-Agent reagieren
   startUpdateChecker();
+
+  // Live-Einstellungen regelmaessig nachholen (ohne Neuladen anwenden)
+  setInterval(() => refreshLiveSettings(true), SETTINGS_CHECK_INTERVAL_MS);
+}
+
+// ============================================================
+//  Live-Einstellungen vom Worker (Zeiten / Laufband / Uhr)
+// ============================================================
+// Holt die in der Admin-Konsole gespeicherten Einstellungen und überschreibt
+// damit die entsprechenden Manifest-Felder. Kein Token, kein Neuladen nötig.
+async function refreshLiveSettings(applyNow) {
+  if (!manifest || !manifest.groupId) return;
+  let settings = null;
+  try {
+    const url = `${SETTINGS_BASE}/settings/${encodeURIComponent(manifest.groupId)}?t=${Date.now()}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    if (!res.ok) return;                       // Worker weg -> Manifest-Fallback bleibt
+    const data = await res.json();
+    settings = data && data.settings ? data.settings : null;
+  } catch (e) {
+    return;                                     // offline -> lokale Anzeige läuft weiter
+  }
+  if (!settings || typeof settings !== 'object') return;
+
+  let changed = false;
+  for (const key of LIVE_FIELDS) {
+    if (settings[key] === undefined) continue;
+    if (JSON.stringify(manifest[key]) !== JSON.stringify(settings[key])) {
+      manifest[key] = settings[key];
+      changed = true;
+    }
+  }
+  if (changed && applyNow) {
+    log('Live-Einstellungen aktualisiert (Worker).');
+    applyOverlayConfig();
+    applyTickerConfig();
+    evaluateSchedule();
+  }
 }
 
 // ============================================================
