@@ -190,6 +190,9 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 User=$SIGNAGE_USER
+# Nicht die Kindprozesse killen, wenn der Dienst endet – sonst wuerde ein per
+# 'kiosk-on' frisch gestarteter Chromium sofort wieder beendet.
+KillMode=process
 ExecStart=/bin/sh $INSTALL_DIR/bin/command-poll.sh
 UNIT
 sudo tee /etc/systemd/system/signage-command.timer >/dev/null <<'UNIT'
@@ -244,8 +247,11 @@ chmod +x "$USER_HOME/.config/labwc/autostart"
 # Wartungsbefehle: Kiosk verlassen / zurueck (fuer Updates am Bildschirm)
 sudo tee /usr/local/bin/kiosk-off >/dev/null <<'KOFF'
 #!/bin/sh
+# Stop-Markierung setzen und Chromium ~4s lang wiederholt beenden, bis der
+# Watchdog-Loop die Markierung gesehen hat (verhindert sofortiges Neustarten).
 touch /tmp/signage-kiosk-stop
-pkill chromium 2>/dev/null
+i=0
+while [ $i -lt 8 ]; do pkill chromium 2>/dev/null; sleep 0.5; i=$((i+1)); done
 echo "Kiosk pausiert – du bist auf dem Desktop. Zurueck mit:  kiosk-on"
 KOFF
 sudo tee /usr/local/bin/kiosk-on >/dev/null <<KON
