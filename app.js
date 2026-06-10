@@ -145,10 +145,39 @@ function liveStatusHtml(players, currentVersion) {
     const online = (now - seen) < ONLINE_MS;
     const dot = online ? '🟢' : '🔴';
     const verNote = (p.version && currentVersion && p.version !== currentVersion) ? ' · ⚠ alte Version' : '';
-    return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${verNote}</div>`;
+    const pid = attr(p.playerId);
+    return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${verNote}
+      <span class="cmds" title="Fernwartung – der Bildschirm fuehrt es in ca. 20 Sek. aus">
+        <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-off">Kiosk verlassen</button>
+        <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-on">Kiosk starten</button>
+        <button class="cmd-btn danger" data-pid="${pid}" data-action="reboot">Neustart</button>
+      </span></div>`;
   }).join('');
   return `<div class="livestatus">${rows}</div>`;
 }
+
+// Fernwartung: Klick auf einen Befehls-Knopf -> Befehl im Worker ablegen.
+// Der Pi holt ihn beim naechsten Poll (~20s) und fuehrt ihn aus.
+const CMD_LABELS = { 'kiosk-off': 'Kiosk verlassen', 'kiosk-on': 'Kiosk starten', 'reboot': 'Neustart' };
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest && e.target.closest('.cmd-btn');
+  if (!b) return;
+  const pid = b.dataset.pid, action = b.dataset.action;
+  if (!confirm(`„${CMD_LABELS[action] || action}" an „${pid}" senden?\n\nDer Bildschirm führt es in etwa 20 Sekunden aus.`)) return;
+  const orig = b.textContent;
+  b.disabled = true; b.textContent = '… sende';
+  try {
+    const r = await fetch(`${HEARTBEAT_URL}/command`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: pid, action }),
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    b.textContent = '✓ gesendet';
+  } catch (err) {
+    b.textContent = '⚠ Fehler';
+  }
+  setTimeout(() => { b.textContent = orig; b.disabled = false; }, 2500);
+});
 function relTime(ms) {
   if (!ms) return '–';
   const s = Math.max(0, Math.round((Date.now() - ms) / 1000));
