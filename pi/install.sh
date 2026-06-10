@@ -195,9 +195,12 @@ cat > "$USER_HOME/.config/labwc/autostart" <<AUTO
 #!/bin/sh
 # Schule Neckertal Signage - Kiosk-Autostart (labwc/Wayland) mit Watchdog.
 # Pausierbar fuer Wartung: 'kiosk-off' (zum Desktop) / 'kiosk-on' (zurueck).
+# Cache beim Start leeren, damit Code-Updates nach Neustart/Reboot greifen
+# (KEIN --incognito: das wird durch die Managed-Policy blockiert -> Crash-Loop).
+rm -rf "\$HOME/.cache/chromium" "\$HOME/.config/chromium/Default/Cache" "\$HOME/.config/chromium/Default/Code Cache" 2>/dev/null
 (
   while [ ! -e /tmp/signage-kiosk-stop ]; do
-    chromium --kiosk --incognito --ozone-platform=wayland --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-translate --disable-features=Translate,TranslateUI --no-first-run --no-default-browser-check --password-store=basic --check-for-update-interval=31536000 --autoplay-policy=no-user-gesture-required http://localhost:$PORT/ >/dev/null 2>&1
+    chromium --kiosk --ozone-platform=wayland --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-translate --disable-features=Translate,TranslateUI --no-first-run --no-default-browser-check --password-store=basic --check-for-update-interval=31536000 --autoplay-policy=no-user-gesture-required http://localhost:$PORT/ >/dev/null 2>&1
     sleep 3
   done
 ) &
