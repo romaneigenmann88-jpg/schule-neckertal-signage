@@ -1,7 +1,7 @@
 {
   "groupId": "STPETERZELL_EINGANG",
   "title": "St. Peterzell – Eingang",
-  "version": "2026-06-10T06:44:57Z",
+  "version": "2026-06-10T07:36:35Z",
   "sourceHash": "e852c2d18c8c58001b5c6edc691f7c1aca73aa43e8e94f0c07690820a697d2c6",
   "players": [],
   "editUrl": "https://docs.google.com/presentation/d/1kuY1Fun8uBMWQs4IZnuNqXlE1EhJGnCE4D4A78VuMis/edit",
@@ -44,12 +44,12 @@
     "type": "renderedPowerPoint",
     "slides": [
       {
-        "file": "slides/2026-06-10T06-44-57Z/slide-001.png",
+        "file": "slides/2026-06-10T07-36-35Z/slide-001.png",
         "durationSeconds": 5,
         "sourceSlideNumber": 1
       },
       {
-        "file": "slides/2026-06-10T06-44-57Z/slide-002.png",
+        "file": "slides/2026-06-10T07-36-35Z/slide-002.png",
         "durationSeconds": 5,
         "sourceSlideNumber": 2
       }

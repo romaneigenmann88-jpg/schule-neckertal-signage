@@ -45,8 +45,9 @@ main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
 .btn.ghost { background: #eef2f7; color: #1f2937; flex: 0 0 auto; }
 .btn:hover { filter: brightness(0.96); }
 
-/* Einstellungen-Maske */
-.settings-box { width: min(94vw, 620px); max-height: 88vh; overflow-y: auto; background: #fff; color: #1f2937; }
+/* Einstellungen-Maske – .modal-box.settings-box, damit die helle Box die
+   dunkle Standard-Modal-Regel sicher überschreibt (Spezifität). */
+.modal-box.settings-box { width: min(94vw, 620px); max-height: 88vh; overflow-y: auto; background: #fff; color: #1f2937; }
 .settings-box h2 { margin: 0 0 12px; font-size: 20px; }
 .settings-form fieldset { border: 1px solid #e5e7eb; border-radius: 10px; margin: 0 0 14px; padding: 12px 14px; }
 .settings-form legend { font-weight: 700; color: var(--blau); padding: 0 6px; }
