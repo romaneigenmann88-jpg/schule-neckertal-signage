@@ -106,7 +106,7 @@ main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
 .pv-overlay.theme-transparent-light { color: #fff; text-shadow: 0 0 5px rgba(0,0,0,.7); }
 
 /* Layer 3: Ticker */
-.pv-ticker { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; background: rgba(178,0,36,.92); color: #fff; font-size: 2cqw; font-weight: 700; padding: 0.7cqh 0; white-space: nowrap; overflow: hidden; }
+.pv-ticker { position: absolute; left: 0; right: 0; bottom: 0; z-index: 6; background: #3B74BE; color: #fff; font-size: 2cqw; font-weight: 700; padding: 0.7cqh 0; white-space: nowrap; overflow: hidden; }
 .pv-ticker span { display: inline-block; padding-left: 100%; animation: pv-ticker 18s linear infinite; }
 @keyframes pv-ticker { to { transform: translateX(-100%); } }
 .preview-nav { display: flex; align-items: center; justify-content: center; gap: 16px; color: #fff; margin-top: 8px; }

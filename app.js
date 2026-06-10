@@ -62,10 +62,25 @@ async function main() {
       const settings = await fetchSettings(gid);
       if (settings) applyLiveSettings(m, settings);
       const players = beats ? (beats[gid] || []) : null;
-      container.appendChild(card(gid, m, players));
+      const el = card(gid, m, players);
+      state[gid] = { m, players, el };   // Referenz merken, um nach dem Speichern zu aktualisieren
+      container.appendChild(el);
     } catch (e) { /* überspringen */ }
   }
   if (!container.children.length) $('empty').hidden = false;
+}
+
+// Gemerkter Zustand je Gruppe: { m (Manifest+Live), players, el (Karten-Element) }.
+const state = {};
+
+// Karte einer Gruppe neu zeichnen (nach dem Speichern), damit z. B. die
+// Zeitplan-Zusammenfassung sofort den gespeicherten Stand zeigt.
+function rerenderCard(gid) {
+  const st = state[gid];
+  if (!st) return;
+  const fresh = card(gid, st.m, st.players);
+  st.el.replaceWith(fresh);
+  st.el = fresh;
 }
 
 // Felder, die live über den Worker verwaltet werden (Spiegel zum Player).
@@ -217,10 +232,12 @@ $('preview-next').addEventListener('click', () => { showPv(pv.i + 1); autoAdvanc
 // ============================================================
 let curGid = null;
 let curConfig = null;
+let curManifest = null;   // Referenz auf das gemerkte Manifest dieser Gruppe
 
 function openSettings(gid, m) {
   curGid = gid;
-  curConfig = configFromManifest(gid, m);
+  curManifest = (state[gid] && state[gid].m) || m;
+  curConfig = configFromManifest(gid, curManifest);
   $('settings-title').textContent = 'Einstellungen – ' + (curConfig.title || gid);
   $('settings-form').innerHTML = buildForm(curConfig);
   $('settings').hidden = false;
@@ -324,9 +341,14 @@ $('settings-save').addEventListener('click', async () => {
       body: JSON.stringify({ groupId: curGid, settings }),
     });
     if (!res.ok) throw new Error('HTTP ' + res.status);
+    // Lokalen Zustand sofort mit den GESPEICHERTEN Werten aktualisieren (nicht neu
+    // vom Worker holen – KV ist kurz verzögert konsistent und würde u. U. den alten
+    // Stand liefern). So zeigen Karte, Vorschau und erneutes Öffnen sofort das Neue.
+    if (curManifest) applyLiveSettings(curManifest, settings);
+    rerenderCard(curGid);
     closeSettings();
     showResult('✅ Gespeichert',
-      'Die Einstellungen sind gespeichert. Die Bildschirme übernehmen sie automatisch innerhalb von etwa einer Minute – kein Neustart nötig.');
+      'Die Einstellungen sind gespeichert und in der Konsole übernommen. Die Bildschirme aktualisieren sich automatisch innerhalb von etwa einer Minute – kein Neustart nötig.');
   } catch (e) {
     showResult('⚠️ Nicht gespeichert',
       'Speichern hat nicht geklappt (' + e.message + '). Internetverbindung prüfen und erneut versuchen.');
