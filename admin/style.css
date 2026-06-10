@@ -15,6 +15,9 @@ header h1 { margin: 4px 0 2px; font-size: 22px; }
 
 main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
 .hint { color: var(--grau); font-size: 13px; margin-top: 24px; text-align: center; }
+.help { max-width: 760px; margin: 14px auto 0; font-size: 13px; color: #374151; background: #fff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 12px 16px; }
+.help ul { margin: 6px 0; padding-left: 20px; line-height: 1.5; }
+.help .muted { display: block; margin-top: 6px; }
 
 .groups { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 18px; }
 
@@ -32,9 +35,18 @@ main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
 .card .stats { display: flex; gap: 14px; font-size: 13px; color: #374151; }
 .card .sched, .card .players { font-size: 12px; color: var(--grau); }
 .warnings { font-size: 12px; color: #92400e; background: #fef3c7; padding: 6px 8px; border-radius: 6px; }
-.livestatus { font-size: 12px; display: flex; flex-direction: column; gap: 2px; }
+.livestatus { font-size: 12px; display: flex; flex-direction: column; gap: 6px; }
 .livestatus.muted { color: var(--grau); }
 .livestatus .pl { color: #374151; }
+.cmds { display: inline-flex; gap: 6px; margin-left: 6px; flex-wrap: wrap; }
+.cmd-btn {
+  border: 1px solid #cbd5e1; background: #f3f6fa; color: #1f2937;
+  border-radius: 6px; font-size: 11px; padding: 2px 8px; cursor: pointer;
+}
+.cmd-btn:hover { background: #e6edf6; }
+.cmd-btn.danger { border-color: #f0b4bf; color: var(--rot); background: #fdf2f4; }
+.cmd-btn.danger:hover { background: #fbe3e8; }
+.cmd-btn:disabled { opacity: .6; cursor: default; }
 .actions { margin-top: auto; display: flex; gap: 8px; padding-top: 6px; }
 .btn {
   flex: 1; text-align: center; padding: 8px 10px; border-radius: 8px;

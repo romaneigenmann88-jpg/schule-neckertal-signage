@@ -68,6 +68,10 @@ cp "$REPO_ROOT/pi/display-schedule.sh" "$INSTALL_DIR/bin/display-schedule.sh"
 chmod +x "$INSTALL_DIR/bin/display-schedule.sh"
 cp "$REPO_ROOT/pi/heartbeat.sh" "$INSTALL_DIR/bin/heartbeat.sh"
 chmod +x "$INSTALL_DIR/bin/heartbeat.sh"
+cp "$REPO_ROOT/pi/command-poll.sh" "$INSTALL_DIR/bin/command-poll.sh"
+chmod +x "$INSTALL_DIR/bin/command-poll.sh"
+# Nur kuenftige Befehle ausfuehren (Zeitstempel jetzt als Basislinie)
+date +%s%3N > "$INSTALL_DIR/config/last-command-ts"
 
 # ---------- 5. device.json (Konfiguration) ----------
 echo "[5/10] Konfiguration (device.json) ..."
@@ -175,6 +179,36 @@ Persistent=true
 [Install]
 WantedBy=timers.target
 UNIT
+
+# Fernwartungs-Poller (holt Befehle aus der Admin-Konsole, alle 20s)
+sudo tee /etc/systemd/system/signage-command.service >/dev/null <<UNIT
+[Unit]
+Description=Schule Neckertal Signage - Fernwartungs-Befehle
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=$SIGNAGE_USER
+ExecStart=/bin/sh $INSTALL_DIR/bin/command-poll.sh
+UNIT
+sudo tee /etc/systemd/system/signage-command.timer >/dev/null <<'UNIT'
+[Unit]
+Description=Schule Neckertal Signage - Befehle alle 20 Sekunden
+
+[Timer]
+OnBootSec=30s
+OnUnitActiveSec=20s
+AccuracySec=2s
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+# sudoers: erlaubt dem Player-Benutzer NUR den Neustart ohne Passwort
+# (fuer den Fernwartungs-Befehl "reboot"; sonst nichts).
+echo "$SIGNAGE_USER ALL=(root) NOPASSWD: /sbin/reboot" | sudo tee /etc/sudoers.d/signage-reboot >/dev/null
+sudo chmod 440 /etc/sudoers.d/signage-reboot
 
 # ---------- 8. Chromium-Policy + Kiosk-Autostart (Watchdog) + Blanking ----------
 echo "[8/10] Chromium-Policy, Kiosk-Autostart, Blanking ..."
@@ -297,6 +331,7 @@ fi
 sudo systemctl enable --now signage-sync.timer >/dev/null
 sudo systemctl enable --now signage-display.timer >/dev/null
 sudo systemctl enable --now signage-heartbeat.timer >/dev/null
+sudo systemctl enable --now signage-command.timer >/dev/null
 
 echo
 echo "== Installation abgeschlossen =="

@@ -32,6 +32,33 @@ export default {
     const path = url.pathname.replace(/\/+$/, '');   // ohne Schraegstrich am Ende
 
     // ----------------------------------------------------------
+    //  Fernwartungs-Befehle je Bildschirm (Postfach)
+    //  POST /command {playerId, action}  -> legt einen Befehl ab
+    //  GET  /command/<playerId>          -> {action, ts} (der Pi pollt das)
+    //  Erlaubte Aktionen: kiosk-off, kiosk-on, reboot
+    // ----------------------------------------------------------
+    if (path === '/command' || path.startsWith('/command/')) {
+      const ALLOWED = ['kiosk-off', 'kiosk-on', 'reboot'];
+      if (request.method === 'POST') {
+        let body;
+        try { body = await request.json(); } catch { return resp('bad json', 400); }
+        const pid = String(body.playerId || '').slice(0, 100);
+        const action = String(body.action || '');
+        if (!pid) return resp('playerId fehlt', 400);
+        if (!ALLOWED.includes(action)) return resp('unbekannte Aktion', 400);
+        const rec = { action, ts: Date.now() };
+        // 1 Tag aufheben (falls der Pi offline ist, holt er den Befehl beim Start)
+        await env.HEARTBEATS.put('c:' + pid, JSON.stringify(rec), { expirationTtl: 86400 });
+        return json({ ok: true, playerId: pid, action, ts: rec.ts });
+      }
+      const pid = path.startsWith('/command/') ? decodeURIComponent(path.slice('/command/'.length)) : '';
+      if (!pid) return json({ action: null, ts: 0 });
+      const v = await env.HEARTBEATS.get('c:' + pid);
+      if (!v) return json({ action: null, ts: 0 });
+      return new Response(v, { headers: { ...CORS, 'Content-Type': 'application/json' } });
+    }
+
+    // ----------------------------------------------------------
     //  Einstellungen je Gruppe
     // ----------------------------------------------------------
     if (path === '/settings' || path.startsWith('/settings/')) {
