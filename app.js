@@ -7,8 +7,6 @@ const REPO = 'romaneigenmann88-jpg/schule-neckertal-signage';
 const BRANCH = 'main';
 const HEARTBEAT_URL = 'https://signage-heartbeat.schule-neckertal.workers.dev';
 const ONLINE_MS = 12 * 60 * 1000;   // online, wenn vor < 12 Min gesehen
-const rawConfigUrl = (gid) => `https://raw.githubusercontent.com/${REPO}/${BRANCH}/groups/${gid}/config.json`;
-const editConfigUrl = (gid) => `https://github.com/${REPO}/edit/${BRANCH}/groups/${gid}/config.json`;
 
 const DAYS = [
   ['monday', 'Montag'], ['tuesday', 'Dienstag'], ['wednesday', 'Mittwoch'],
@@ -58,11 +56,36 @@ async function main() {
   for (const gid of index.groups) {
     try {
       const m = await fetchJson(`groups/${gid}/manifest.json`);
+      // Live-Einstellungen vom Worker über das Manifest legen (Quelle der Wahrheit
+      // für Zeiten/Laufband/Uhr; Manifest bleibt Fallback). So zeigen Karte,
+      // Vorschau und Einstellungen den tatsächlich aktiven Stand.
+      const settings = await fetchSettings(gid);
+      if (settings) applyLiveSettings(m, settings);
       const players = beats ? (beats[gid] || []) : null;
       container.appendChild(card(gid, m, players));
     } catch (e) { /* überspringen */ }
   }
   if (!container.children.length) $('empty').hidden = false;
+}
+
+// Felder, die live über den Worker verwaltet werden (Spiegel zum Player).
+const LIVE_FIELDS = ['title', 'defaultSlideDurationSeconds', 'schedule', 'overlayLayer', 'tickerLayer'];
+
+// Gespeicherte Einstellungen einer Gruppe vom Worker holen ({} wenn keine).
+async function fetchSettings(gid) {
+  try {
+    const res = await fetch(`${HEARTBEAT_URL}/settings/${encodeURIComponent(gid)}?n=${Date.now()}`, { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return data && data.settings && Object.keys(data.settings).length ? data.settings : null;
+  } catch (e) { return null; }
+}
+
+// Live-Einstellungen über die Manifest-Felder legen.
+function applyLiveSettings(m, settings) {
+  for (const key of LIVE_FIELDS) {
+    if (settings[key] !== undefined) m[key] = settings[key];
+  }
 }
 
 function card(gid, m, players) {
@@ -287,15 +310,37 @@ document.querySelector('#settings .modal-bg').addEventListener('click', closeSet
 $('settings-save').addEventListener('click', async () => {
   if (!curConfig || !curGid) return;
   const updated = readForm(curConfig);
-  const json = JSON.stringify(updated, null, 2) + '\n';
-  try { await navigator.clipboard.writeText(json); } catch (e) { /* Fallback: Textarea */ }
-  $('saveinfo-json').value = json;
-  $('saveinfo-open').href = editConfigUrl(curGid);
-  closeSettings();
-  $('saveinfo').hidden = false;
-  window.open(editConfigUrl(curGid), '_blank', 'noopener');
+  // Nur die live verwalteten Felder an den Worker senden (kein Token, kein Rendern).
+  const settings = {};
+  for (const key of LIVE_FIELDS) if (updated[key] !== undefined) settings[key] = updated[key];
+
+  const btn = $('settings-save');
+  const label = btn.textContent;
+  btn.disabled = true; btn.textContent = '… speichert';
+  try {
+    const res = await fetch(`${HEARTBEAT_URL}/settings`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ groupId: curGid, settings }),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    closeSettings();
+    showResult('✅ Gespeichert',
+      'Die Einstellungen sind gespeichert. Die Bildschirme übernehmen sie automatisch innerhalb von etwa einer Minute – kein Neustart nötig.');
+  } catch (e) {
+    showResult('⚠️ Nicht gespeichert',
+      'Speichern hat nicht geklappt (' + e.message + '). Internetverbindung prüfen und erneut versuchen.');
+  } finally {
+    btn.disabled = false; btn.textContent = label;
+  }
 });
+function showResult(title, msg) {
+  $('saveinfo-title').textContent = title;
+  $('saveinfo-msg').textContent = msg;
+  $('saveinfo').hidden = false;
+}
 $('saveinfo-close').addEventListener('click', () => { $('saveinfo').hidden = true; });
+$('saveinfo-ok').addEventListener('click', () => { $('saveinfo').hidden = true; });
 document.querySelector('#saveinfo .modal-bg').addEventListener('click', () => { $('saveinfo').hidden = true; });
 
 // ============================================================

@@ -16,8 +16,7 @@
   <main>
     <div id="groups" class="groups"></div>
     <p id="empty" hidden>Keine Gruppen gefunden.</p>
-    <p class="hint">Inhalte (Folien) werden in <strong>Google Slides</strong> bearbeitet, Einstellungen hier. Änderungen erscheinen nach wenigen Minuten automatisch auf den Bildschirmen.<br>
-    <em>Live-Status der Bildschirme (online/offline) folgt mit der Heartbeat-Anbindung.</em></p>
+    <p class="hint">Inhalte (Folien) werden in <strong>Google Slides</strong> bearbeitet, Einstellungen (Zeiten, Laufband, Uhr) hier. Beides erscheint nach etwa einer Minute automatisch auf den Bildschirmen – kein Login, kein Neustart nötig.</p>
   </main>
 
   <!-- Vorschau-Modal -->
@@ -54,20 +53,14 @@
     </div>
   </div>
 
-  <!-- Speichern-Anleitung -->
+  <!-- Speichern-Ergebnis -->
   <div id="saveinfo" class="modal" hidden>
     <div class="modal-bg"></div>
     <div class="modal-box">
       <button id="saveinfo-close" class="close" title="Schliessen">×</button>
-      <h2>💾 Speichern auf GitHub</h2>
-      <ol class="steps">
-        <li>Die Einstellungen sind <strong>in die Zwischenablage kopiert</strong>.</li>
-        <li>GitHub öffnet sich (mit deinem Login). Klick ins Textfeld, <strong>alles markieren</strong> (Strg+A) und <strong>einfügen</strong> (Strg+V).</li>
-        <li>Unten grün <strong>„Commit changes"</strong> klicken.</li>
-      </ol>
-      <p class="muted">Falls das Kopieren nicht klappte – hier der Inhalt zum manuellen Kopieren:</p>
-      <textarea id="saveinfo-json" class="json" readonly></textarea>
-      <a id="saveinfo-open" class="btn edit" href="#" target="_blank" rel="noopener">↗ Auf GitHub öffnen</a>
+      <h2 id="saveinfo-title">✅ Gespeichert</h2>
+      <p id="saveinfo-msg" class="muted"></p>
+      <button id="saveinfo-ok" class="btn edit">OK</button>
     </div>
   </div>
 
