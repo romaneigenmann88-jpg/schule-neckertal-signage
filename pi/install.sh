@@ -197,7 +197,7 @@ cat > "$USER_HOME/.config/labwc/autostart" <<AUTO
 # Pausierbar fuer Wartung: 'kiosk-off' (zum Desktop) / 'kiosk-on' (zurueck).
 (
   while [ ! -e /tmp/signage-kiosk-stop ]; do
-    chromium --kiosk --ozone-platform=wayland --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-translate --disable-features=Translate,TranslateUI --no-first-run --no-default-browser-check --password-store=basic --check-for-update-interval=31536000 --autoplay-policy=no-user-gesture-required http://localhost:$PORT/ >/dev/null 2>&1
+    chromium --kiosk --incognito --ozone-platform=wayland --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-translate --disable-features=Translate,TranslateUI --no-first-run --no-default-browser-check --password-store=basic --check-for-update-interval=31536000 --autoplay-policy=no-user-gesture-required http://localhost:$PORT/ >/dev/null 2>&1
     sleep 3
   done
 ) &
@@ -219,6 +219,30 @@ setsid sh "$USER_HOME/.config/labwc/autostart" >/dev/null 2>&1 < /dev/null
 echo "Kiosk laeuft wieder."
 KON
 sudo chmod +x /usr/local/bin/kiosk-off /usr/local/bin/kiosk-on
+
+# Tastenkürzel (labwc): Kiosk ohne Terminal/SSH verlassen und zurück.
+#   Strg+Alt+K = kiosk-off (Desktop) · Strg+Alt+O = kiosk-on · Strg+Alt+T = Terminal
+# Wir kopieren die System-rc.xml (damit Standard-Keybinds erhalten bleiben) und
+# fügen unsere Keybinds direkt nach <default /> ein.
+DEFAULT_RC="/etc/xdg/labwc/rc.xml"
+USER_RC="$USER_HOME/.config/labwc/rc.xml"
+if [ -f "$DEFAULT_RC" ] && [ ! -f "$USER_RC" ]; then
+  python3 - "$DEFAULT_RC" "$USER_RC" <<'PY'
+import sys
+src, dst = sys.argv[1], sys.argv[2]
+xml = open(src, encoding="utf-8").read()
+binds = """    <!-- Schule Neckertal Signage: Kiosk-Wartung ohne Terminal/SSH -->
+    <keybind key="C-A-k"><action name="Execute" command="/usr/local/bin/kiosk-off" /></keybind>
+    <keybind key="C-A-o"><action name="Execute" command="/usr/local/bin/kiosk-on" /></keybind>
+    <keybind key="C-A-t"><action name="Execute" command="x-terminal-emulator" /></keybind>
+"""
+marker = "<default />"
+if marker in xml and "kiosk-off" not in xml:
+    xml = xml.replace(marker, marker + "\n" + binds, 1)
+open(dst, "w", encoding="utf-8").write(xml)
+PY
+  echo "    labwc-Tastenkürzel gesetzt (Strg+Alt+K = Kiosk verlassen)."
+fi
 
 sudo raspi-config nonint do_blanking 1 || true
 
