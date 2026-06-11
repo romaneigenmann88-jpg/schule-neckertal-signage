@@ -6,7 +6,7 @@
 const REPO = 'romaneigenmann88-jpg/schule-neckertal-signage';
 const BRANCH = 'main';
 const HEARTBEAT_URL = 'https://signage-heartbeat.schule-neckertal.workers.dev';
-const ONLINE_MS = 12 * 60 * 1000;   // online, wenn vor < 12 Min gesehen
+const ONLINE_MS = 25 * 60 * 1000;   // online, wenn vor < 25 Min gesehen (Heartbeat alle 10 Min, toleriert 1 verpassten)
 
 const DAYS = [
   ['monday', 'Montag'], ['tuesday', 'Dienstag'], ['wednesday', 'Mittwoch'],
