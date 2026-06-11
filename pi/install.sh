@@ -252,7 +252,7 @@ cat > "$USER_HOME/.config/labwc/autostart" <<AUTO
 rm -rf "\$HOME/.cache/chromium" "\$HOME/.config/chromium/Default/Cache" "\$HOME/.config/chromium/Default/Code Cache" 2>/dev/null
 (
   while [ ! -e /tmp/signage-kiosk-stop ]; do
-    chromium --kiosk --ozone-platform=wayland --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-translate --disable-features=Translate,TranslateUI --no-first-run --no-default-browser-check --password-store=basic --check-for-update-interval=31536000 --autoplay-policy=no-user-gesture-required http://localhost:$PORT/ >/dev/null 2>&1
+    env XCURSOR_THEME=blank XCURSOR_SIZE=24 chromium --kiosk --ozone-platform=wayland --noerrdialogs --disable-infobars --disable-session-crashed-bubble --disable-translate --disable-features=Translate,TranslateUI --no-first-run --no-default-browser-check --password-store=basic --check-for-update-interval=31536000 --autoplay-policy=no-user-gesture-required http://localhost:$PORT/ >/dev/null 2>&1
     sleep 3
   done
 ) &
@@ -302,9 +302,10 @@ PY
   echo "    labwc-Tastenkürzel gesetzt (Strg+Alt+K = Kiosk verlassen)."
 fi
 
-# Mauszeiger im Kiosk dauerhaft ausblenden: transparentes Cursor-Theme "blank"
-# + labwc-Environment (labwc liest ~/.config/labwc/environment beim Start).
-echo "    Mauszeiger ausblenden (transparentes Cursor-Theme) ..."
+# Mauszeiger NUR im Kiosk ausblenden: transparentes Cursor-Theme "blank".
+# Das Theme haengt per env-Prefix NUR an Chromium (siehe Autostart oben) – so
+# bleibt der Desktop-Cursor fuer Wartung sichtbar.
+echo "    Mauszeiger im Kiosk ausblenden (transparentes Cursor-Theme) ..."
 mkdir -p "$USER_HOME/.icons/blank/cursors"
 python3 - "$USER_HOME/.icons/blank/cursors/default" <<'PY'
 import struct, sys
@@ -324,11 +325,6 @@ printf '[Icon Theme]\nName=blank\nComment=blank\n' > "$USER_HOME/.icons/blank/in
     ne-resize nw-resize se-resize sw-resize ew-resize ns-resize nesw-resize nwse-resize; do
     [ -e "$n" ] || ln -s default "$n"
   done )
-mkdir -p "$USER_HOME/.config/labwc"
-{ grep -v XCURSOR "$USER_HOME/.config/labwc/environment" 2>/dev/null; \
-  echo 'XCURSOR_THEME=blank'; echo 'XCURSOR_SIZE=24'; } \
-  > "$USER_HOME/.config/labwc/environment.tmp" \
-  && mv "$USER_HOME/.config/labwc/environment.tmp" "$USER_HOME/.config/labwc/environment"
 
 sudo raspi-config nonint do_blanking 1 || true
 
