@@ -156,6 +156,25 @@ function liveStatusHtml(players, currentVersion) {
   return `<div class="livestatus">${rows}</div>`;
 }
 
+// Live-Status regelmaessig aktualisieren, OHNE die Seite neu zu laden – sonst
+// "klebt" die Anzeige auf dem Stand vom Seitenaufruf (zeigt faelschlich offline).
+async function refreshLiveStatus() {
+  if (typeof state === 'undefined') return;
+  let beats;
+  try {
+    const hb = await (await fetch(`${HEARTBEAT_URL}?n=${Date.now()}`, { cache: 'no-store' })).json();
+    beats = {};
+    for (const p of (hb.players || [])) (beats[p.groupId] = beats[p.groupId] || []).push(p);
+  } catch (e) { return; }
+  for (const gid in state) {
+    const st = state[gid];
+    st.players = beats[gid] || [];
+    const ls = st.el.querySelector('.livestatus');
+    if (ls) ls.outerHTML = liveStatusHtml(st.players, st.m.version);
+  }
+}
+setInterval(refreshLiveStatus, 60 * 1000);
+
 // Fernwartung: Klick auf einen Befehls-Knopf -> Befehl im Worker ablegen.
 // Der Pi holt ihn beim naechsten Poll (~20s) und fuehrt ihn aus.
 const CMD_LABELS = { 'kiosk-off': 'Kiosk verlassen', 'kiosk-on': 'Kiosk starten', 'reboot': 'Neustart' };
