@@ -278,7 +278,11 @@ function startClock() {
     }
   };
   tick();
-  setInterval(tick, 1000);
+  // Die Anzeige zeigt nur HH:MM (keine Sekunden) – daher nur einmal pro Minute
+  // aktualisieren statt sekuendlich. Spart ~59 Neuzeichnungen/Min (CPU/Hitze).
+  // Auf die Minute synchronisiert, damit der Minutenwechsel punktgenau kommt.
+  const msToNextMinute = 60000 - (Date.now() % 60000);
+  setTimeout(() => { tick(); setInterval(tick, 60000); }, msToNextMinute + 50);
 }
 
 // ============================================================
@@ -289,9 +293,11 @@ function applyTickerConfig() {
   if (t.active && t.text) {
     dom.tickerTx.textContent = t.text;
     dom.ticker.hidden = false;
+    dom.ticker.classList.add('ticker-active');   // Animation NUR mit echtem Text
     log('Ticker aktiv:', t.text);
   } else {
     dom.ticker.hidden = true;
+    dom.ticker.classList.remove('ticker-active');
   }
 }
 
