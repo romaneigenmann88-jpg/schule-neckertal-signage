@@ -302,10 +302,12 @@ PY
   echo "    labwc-Tastenkürzel gesetzt (Strg+Alt+K = Kiosk verlassen)."
 fi
 
-# Mauszeiger NUR im Kiosk ausblenden: transparentes Cursor-Theme "blank".
-# Das Theme haengt per env-Prefix NUR an Chromium (siehe Autostart oben) – so
-# bleibt der Desktop-Cursor fuer Wartung sichtbar.
-echo "    Mauszeiger im Kiosk ausblenden (transparentes Cursor-Theme) ..."
+# Mauszeiger ausblenden: transparentes Cursor-Theme "blank" – compositor-weit
+# (XCURSOR_THEME im labwc-Environment), sonst bleibt im Ruhezustand der vom
+# Compositor gezeichnete Zeiger sichtbar und verschwindet erst bei Bewegung.
+# Folge: auch auf dem Wartungs-Desktop kein Zeiger -> Wartung per Tastatur
+# (Strg+Alt+T Terminal). Bewusste Entscheidung: sauberer Kiosk hat Vorrang.
+echo "    Mauszeiger ausblenden (transparentes Cursor-Theme) ..."
 mkdir -p "$USER_HOME/.icons/blank/cursors"
 python3 - "$USER_HOME/.icons/blank/cursors/default" <<'PY'
 import struct, sys
@@ -325,6 +327,11 @@ printf '[Icon Theme]\nName=blank\nComment=blank\n' > "$USER_HOME/.icons/blank/in
     ne-resize nw-resize se-resize sw-resize ew-resize ns-resize nesw-resize nwse-resize; do
     [ -e "$n" ] || ln -s default "$n"
   done )
+mkdir -p "$USER_HOME/.config/labwc"
+{ grep -v XCURSOR "$USER_HOME/.config/labwc/environment" 2>/dev/null; \
+  echo 'XCURSOR_THEME=blank'; echo 'XCURSOR_SIZE=24'; } \
+  > "$USER_HOME/.config/labwc/environment.tmp" \
+  && mv "$USER_HOME/.config/labwc/environment.tmp" "$USER_HOME/.config/labwc/environment"
 
 sudo raspi-config nonint do_blanking 1 || true
 
