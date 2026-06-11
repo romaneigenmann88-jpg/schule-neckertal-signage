@@ -302,6 +302,34 @@ PY
   echo "    labwc-Tastenkürzel gesetzt (Strg+Alt+K = Kiosk verlassen)."
 fi
 
+# Mauszeiger im Kiosk dauerhaft ausblenden: transparentes Cursor-Theme "blank"
+# + labwc-Environment (labwc liest ~/.config/labwc/environment beim Start).
+echo "    Mauszeiger ausblenden (transparentes Cursor-Theme) ..."
+mkdir -p "$USER_HOME/.icons/blank/cursors"
+python3 - "$USER_HOME/.icons/blank/cursors/default" <<'PY'
+import struct, sys
+w = h = 24
+data  = b"Xcur" + struct.pack("<III", 16, 0x00010000, 1)         # Header + ntoc=1
+data += struct.pack("<III", 0xfffd0002, 24, 28)                  # TOC: Bild, Groesse 24, Offset 28
+data += struct.pack("<IIIIIIIII", 36, 0xfffd0002, 24, 1, w, h, 0, 0, 0)
+data += b"\x00\x00\x00\x00" * (w * h)                            # alle Pixel transparent
+open(sys.argv[1], "wb").write(data)
+PY
+printf '[Icon Theme]\nName=blank\nComment=blank\n' > "$USER_HOME/.icons/blank/index.theme"
+( cd "$USER_HOME/.icons/blank/cursors" && for n in \
+    left_ptr left_ptr_watch watch xterm text arrow hand hand1 hand2 pointer \
+    pointing_hand crosshair cross fleur all-scroll grab grabbing move \
+    not-allowed no-drop progress wait help question_arrow sb_h_double_arrow \
+    sb_v_double_arrow col-resize row-resize e-resize n-resize w-resize s-resize \
+    ne-resize nw-resize se-resize sw-resize ew-resize ns-resize nesw-resize nwse-resize; do
+    [ -e "$n" ] || ln -s default "$n"
+  done )
+mkdir -p "$USER_HOME/.config/labwc"
+{ grep -v XCURSOR "$USER_HOME/.config/labwc/environment" 2>/dev/null; \
+  echo 'XCURSOR_THEME=blank'; echo 'XCURSOR_SIZE=24'; } \
+  > "$USER_HOME/.config/labwc/environment.tmp" \
+  && mv "$USER_HOME/.config/labwc/environment.tmp" "$USER_HOME/.config/labwc/environment"
+
 sudo raspi-config nonint do_blanking 1 || true
 
 # ---------- 9. Optionaler täglicher Reboot ----------
