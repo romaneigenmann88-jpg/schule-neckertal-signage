@@ -412,9 +412,9 @@ function openAddScreen(gid, m) {
 }
 function updateAddCmd() {
   const pid = ($('addscreen-player').value.trim() || 'SCREEN_01').replace(/\s+/g, '_');
-  const manifestUrl = new URL(`groups/${addGid}/manifest.json`, location.href).href;
   const setupUrl = new URL('setup.sh', location.href).href;
-  $('addscreen-cmd').value = `curl -fsSL ${setupUrl} | PLAYER_ID=${pid} MANIFEST_URL=${manifestUrl} bash`;
+  // Der Pi rendert selbst – er braucht nur die Gruppe (GROUP_ID).
+  $('addscreen-cmd').value = `curl -fsSL ${setupUrl} | PLAYER_ID=${pid} GROUP_ID=${addGid} bash`;
 }
 $('addscreen-player').addEventListener('input', updateAddCmd);
 $('addscreen-copy').addEventListener('click', async () => {

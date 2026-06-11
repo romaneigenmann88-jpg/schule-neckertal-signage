@@ -22,7 +22,11 @@ PORT="${SIGNAGE_PORT:-8099}"
 INSTALL_DIR="${INSTALL_DIR:-/opt/school-signage}"
 DAILY_REBOOT="${DAILY_REBOOT:-04:00}"              # "" = täglichen Reboot aus
 OUTPUT="${SIGNAGE_OUTPUT:-HDMI-A-1}"
-MANIFEST_URL="${MANIFEST_URL:-https://romaneigenmann88-jpg.github.io/schule-neckertal-signage/groups/OZN_EINGANG/manifest.json}"
+# Welche Gruppe dieser Bildschirm zeigt. Der Pi rendert die Google-Folien selbst
+# (token-frei); er braucht nur die oeffentliche Gruppen-Config.
+GROUP_ID="${GROUP_ID:-OZN_EINGANG}"
+REPO_RAW="${REPO_RAW:-https://raw.githubusercontent.com/romaneigenmann88-jpg/schule-neckertal-signage/main}"
+CONFIG_URL="${CONFIG_URL:-$REPO_RAW/groups/$GROUP_ID/config.json}"
 HEARTBEAT_URL="${HEARTBEAT_URL:-https://signage-heartbeat.schule-neckertal.workers.dev}"
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -34,7 +38,8 @@ echo "Benutzer:    $SIGNAGE_USER"
 echo "PlayerId:    $PLAYER_ID"
 echo "Port:        $PORT"
 echo "Zielverz.:   $INSTALL_DIR"
-echo "Manifest:    $MANIFEST_URL"
+echo "Gruppe:      $GROUP_ID"
+echo "Config:      $CONFIG_URL"
 echo
 
 if [ ! -d "$REPO_ROOT/player" ]; then
@@ -43,12 +48,17 @@ if [ ! -d "$REPO_ROOT/player" ]; then
 fi
 
 # ---------- 1. Pakete ----------
+# poppler-utils (pdftoppm) zum lokalen Rendern, python3-pptx fuer das Manifest.
 echo "[1/10] Pakete installieren ..."
 sudo apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  chromium python3 grim wlr-randr v4l-utils fonts-comfortaa >/dev/null 2>&1 || \
+  chromium python3 grim wlr-randr v4l-utils fonts-comfortaa poppler-utils >/dev/null 2>&1 || \
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  chromium-browser python3 grim wlr-randr v4l-utils fonts-comfortaa >/dev/null
+  chromium-browser python3 grim wlr-randr v4l-utils fonts-comfortaa poppler-utils >/dev/null
+# python-pptx: bevorzugt aus den Paketquellen, sonst per pip (extern verwaltet).
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-pptx >/dev/null 2>&1 || \
+  pip3 install --break-system-packages --quiet python-pptx >/dev/null 2>&1 || \
+  pip3 install --quiet python-pptx >/dev/null 2>&1 || true
 
 # ---------- 2. Verzeichnisse ----------
 echo "[2/10] Verzeichnisse anlegen ..."
@@ -60,10 +70,13 @@ mkdir -p "$INSTALL_DIR"/web "$INSTALL_DIR"/data "$INSTALL_DIR"/config "$INSTALL_
 echo "[3/10] App-Dateien kopieren ..."
 cp "$REPO_ROOT/player/index.html" "$REPO_ROOT/player/app.js" "$REPO_ROOT/player/style.css" "$INSTALL_DIR/web/"
 
-# ---------- 4. Sync-Agent ----------
-echo "[4/10] Sync-Agent ..."
-cp "$REPO_ROOT/pi/sync.py" "$INSTALL_DIR/bin/sync.py"
-chmod +x "$INSTALL_DIR/bin/sync.py"
+# ---------- 4. Sync-Agent (rendert die Google-Folien lokal, token-frei) ----------
+echo "[4/10] Render-Sync-Agent ..."
+cp "$REPO_ROOT/pi/render-sync.py" "$INSTALL_DIR/bin/render-sync.py"
+chmod +x "$INSTALL_DIR/bin/render-sync.py"
+# Wiederverwendete Render-Bausteine (gleiche Logik wie der GitHub-Workflow)
+cp "$REPO_ROOT/tools/build_manifest.py" "$INSTALL_DIR/bin/build_manifest.py"
+cp "$REPO_ROOT/tools/normalize_slides.py" "$INSTALL_DIR/bin/normalize_slides.py"
 cp "$REPO_ROOT/pi/display-schedule.sh" "$INSTALL_DIR/bin/display-schedule.sh"
 chmod +x "$INSTALL_DIR/bin/display-schedule.sh"
 cp "$REPO_ROOT/pi/heartbeat.sh" "$INSTALL_DIR/bin/heartbeat.sh"
@@ -78,12 +91,13 @@ echo "[5/10] Konfiguration (device.json) ..."
 cat > "$INSTALL_DIR/config/device.json" <<JSON
 {
   "playerId": "$PLAYER_ID",
-  "manifestUrl": "$MANIFEST_URL",
+  "groupId": "$GROUP_ID",
+  "configUrl": "$CONFIG_URL",
   "heartbeatUrl": "$HEARTBEAT_URL",
   "dataDir": "$INSTALL_DIR/data",
   "webDir": "$INSTALL_DIR/web",
   "keepVersions": 3,
-  "checkIntervalSeconds": 300
+  "checkIntervalSeconds": 180
 }
 JSON
 
@@ -116,7 +130,7 @@ Wants=network-online.target
 [Service]
 Type=oneshot
 User=$SIGNAGE_USER
-ExecStart=/usr/bin/python3 $INSTALL_DIR/bin/sync.py
+ExecStart=/usr/bin/python3 $INSTALL_DIR/bin/render-sync.py
 UNIT
 sudo tee /etc/systemd/system/signage-sync.timer >/dev/null <<'UNIT'
 [Unit]
@@ -321,8 +335,8 @@ sudo systemctl daemon-reload
 sudo systemctl enable signage-server.service >/dev/null
 sudo systemctl restart signage-server.service   # restart, damit Unit-Aenderungen greifen
 
-# Initialer Sync ZUERST (vor dem Timer, um Parallelläufe zu vermeiden)
-python3 "$INSTALL_DIR/bin/sync.py" || echo "    Initialer Sync (noch) nicht erfolgreich."
+# Initiales Rendern ZUERST (vor dem Timer, um Parallelläufe zu vermeiden)
+python3 "$INSTALL_DIR/bin/render-sync.py" || echo "    Initiales Rendern (noch) nicht erfolgreich."
 
 # Fallback nur, wenn noch kein Inhalt aktiv ist (z. B. offline bei Erstinstallation)
 if [ ! -e "$INSTALL_DIR/web/content" ]; then
