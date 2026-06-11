@@ -1,7 +1,7 @@
 {
   "groupId": "OZN_EINGANG",
   "title": "OZN – Eingang",
-  "version": "2026-06-11T13:06:37Z",
+  "version": "2026-06-11T13:17:29Z",
   "sourceHash": "99efa177185e36033107dd20c483808a167cae82ff3369ef1a4cb938b8018e2c",
   "players": [],
   "editUrl": "https://docs.google.com/presentation/d/19EblEGCgJMU3d0cDFhI-g8kuOm_u15bxg-7b01cB9Dg/edit",
@@ -38,53 +38,53 @@
     "sunday": {
       "active": false
     },
-    "offMode": "black_screen"
+    "offMode": "hdmi_off"
   },
   "baseLayer": {
     "type": "renderedPowerPoint",
     "slides": [
       {
-        "file": "slides/2026-06-11T13-06-37Z/slide-002.png",
+        "file": "slides/2026-06-11T13-17-29Z/slide-002.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 2
       },
       {
-        "file": "slides/2026-06-11T13-06-37Z/slide-003.png",
+        "file": "slides/2026-06-11T13-17-29Z/slide-003.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 3
       },
       {
-        "file": "slides/2026-06-11T13-06-37Z/slide-004.png",
+        "file": "slides/2026-06-11T13-17-29Z/slide-004.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 4
       },
       {
-        "file": "slides/2026-06-11T13-06-37Z/slide-007.png",
+        "file": "slides/2026-06-11T13-17-29Z/slide-007.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 7
       },
       {
-        "file": "slides/2026-06-11T13-06-37Z/slide-008.png",
+        "file": "slides/2026-06-11T13-17-29Z/slide-008.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 8
       },
       {
-        "file": "slides/2026-06-11T13-06-37Z/slide-009.png",
+        "file": "slides/2026-06-11T13-17-29Z/slide-009.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 9
       },
       {
-        "file": "slides/2026-06-11T13-06-37Z/slide-010.png",
+        "file": "slides/2026-06-11T13-17-29Z/slide-010.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 10
       },
       {
-        "file": "slides/2026-06-11T13-06-37Z/slide-011.png",
+        "file": "slides/2026-06-11T13-17-29Z/slide-011.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 11
       },
       {
-        "file": "slides/2026-06-11T13-06-37Z/slide-012.png",
+        "file": "slides/2026-06-11T13-17-29Z/slide-012.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 12
       }
