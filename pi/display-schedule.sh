@@ -16,7 +16,6 @@
 MAN="${SIGNAGE_MANIFEST:-/opt/school-signage/web/content/manifest.json}"
 DEV="${SIGNAGE_DEVICE:-/opt/school-signage/config/device.json}"
 CEC="${SIGNAGE_CEC:-/dev/cec0}"
-OUTPUT="${SIGNAGE_OUTPUT:-HDMI-A-1}"
 
 # Wayland-Umgebung (der Dienst laeuft ausserhalb der grafischen Session).
 export XDG_RUNTIME_DIR="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
@@ -24,6 +23,12 @@ if [ -z "$WAYLAND_DISPLAY" ]; then
   WAYLAND_DISPLAY=$(ls "$XDG_RUNTIME_DIR" 2>/dev/null | grep -m1 '^wayland-[0-9]$')
   export WAYLAND_DISPLAY
 fi
+
+# Aktiven HDMI-Ausgang bestimmen: explizit via SIGNAGE_OUTPUT, sonst automatisch
+# erkennen (Pi 4 hat HDMI-A-1 UND HDMI-A-2 - der Bildschirm kann an beiden haengen).
+OUTPUT="$SIGNAGE_OUTPUT"
+[ -n "$OUTPUT" ] || OUTPUT=$(wlopm 2>/dev/null | awk 'NR==1{print $1}')
+[ -n "$OUTPUT" ] || OUTPUT="HDMI-A-1"
 
 screen_off() {
   command -v wlopm >/dev/null 2>&1 && wlopm --off "$OUTPUT" >/dev/null 2>&1
