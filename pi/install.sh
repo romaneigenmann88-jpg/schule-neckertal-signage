@@ -52,13 +52,14 @@ fi
 echo "[1/10] Pakete installieren ..."
 sudo apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  chromium python3 grim wlr-randr v4l-utils fonts-comfortaa poppler-utils >/dev/null 2>&1 || \
+  chromium python3 python3-pip grim wlr-randr v4l-utils fonts-comfortaa poppler-utils >/dev/null 2>&1 || \
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  chromium-browser python3 grim wlr-randr v4l-utils fonts-comfortaa poppler-utils >/dev/null
-# python-pptx: bevorzugt aus den Paketquellen, sonst per pip (extern verwaltet).
+  chromium-browser python3 python3-pip grim wlr-randr v4l-utils fonts-comfortaa poppler-utils >/dev/null
+# python-pptx (fuer das Manifest): in Trixie NICHT als apt-Paket -> systemweit
+# per pip (extern verwaltet). Sudo, damit der Dienst-Benutzer es importieren kann.
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-pptx >/dev/null 2>&1 || \
-  pip3 install --break-system-packages --quiet python-pptx >/dev/null 2>&1 || \
-  pip3 install --quiet python-pptx >/dev/null 2>&1 || true
+  sudo pip3 install --break-system-packages --quiet python-pptx >/dev/null 2>&1 || \
+  sudo pip3 install --quiet python-pptx >/dev/null 2>&1 || true
 
 # ---------- 2. Verzeichnisse ----------
 echo "[2/10] Verzeichnisse anlegen ..."

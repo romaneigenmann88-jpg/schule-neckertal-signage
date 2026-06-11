@@ -102,4 +102,7 @@ html, body {
   background: #000; color: #888; font-size: 1.6vw; text-align: center; padding: 5vw;
 }
 
+/* Mauszeiger auf dem Signage-Bildschirm immer ausblenden (Kiosk). */
+html, body, * { cursor: none !important; }
+
 [hidden] { display: none !important; }
