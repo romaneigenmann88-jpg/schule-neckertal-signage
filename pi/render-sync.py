@@ -122,7 +122,7 @@ def main():
     h.update(config_raw)
     source_hash = h.hexdigest()
     if source_hash == active_source_hash(web_dir):
-        log("Keine Aenderung (gleicher Inhalt) – keine PPTX geladen, nichts zu rendern.")
+        log("Keine Aenderung (gleicher Inhalt) - keine PPTX geladen, nichts zu rendern.")
         return 0
 
     # Geaendert -> JETZT erst die PPTX holen (nur fuer Notizen/Dauer + versteckte).
