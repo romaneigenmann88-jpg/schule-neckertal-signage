@@ -52,9 +52,9 @@ fi
 echo "[1/10] Pakete installieren ..."
 sudo apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  chromium python3 python3-pip grim wlr-randr v4l-utils fonts-comfortaa poppler-utils >/dev/null 2>&1 || \
+  chromium python3 python3-pip grim wlr-randr wlopm v4l-utils fonts-comfortaa poppler-utils >/dev/null 2>&1 || \
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  chromium-browser python3 python3-pip grim wlr-randr v4l-utils fonts-comfortaa poppler-utils >/dev/null
+  chromium-browser python3 python3-pip grim wlr-randr wlopm v4l-utils fonts-comfortaa poppler-utils >/dev/null
 # python-pptx (fuer das Manifest): in Trixie NICHT als apt-Paket -> systemweit
 # per pip (extern verwaltet). Sudo, damit der Dienst-Benutzer es importieren kann.
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-pptx >/dev/null 2>&1 || \

@@ -37,7 +37,7 @@
     "sunday": {
       "active": false
     },
-    "offMode": "black_screen"
+    "offMode": "hdmi_off"
   },
   "overlayLayer": {
     "showClock": true,
