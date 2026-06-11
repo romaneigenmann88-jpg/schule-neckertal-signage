@@ -3,14 +3,14 @@
 # Schule Neckertal – Digital Signage: Ein-Befehl-Setup
 # ------------------------------------------------------------
 # Holt das öffentliche Repo und richtet diesen Pi als Player ein.
+# Der Pi rendert die Google-Folien selbst (token-frei) – er braucht nur die
+# Gruppe (GROUP_ID); Quelle/Config holt er sich oeffentlich aus dem Repo.
 # Aufruf (auf dem frisch geflashten Pi, im Terminal):
 #
 #   curl -fsSL https://romaneigenmann88-jpg.github.io/schule-neckertal-signage/setup.sh \
-#     | PLAYER_ID=OZN_SCREEN_02 \
-#       MANIFEST_URL=https://romaneigenmann88-jpg.github.io/schule-neckertal-signage/groups/OZN_EINGANG/manifest.json \
-#       bash
+#     | PLAYER_ID=STP_SCREEN_01 GROUP_ID=STPETERZELL_EINGANG bash
 #
-# PLAYER_ID und MANIFEST_URL werden an pi/install.sh durchgereicht.
+# PLAYER_ID und GROUP_ID werden an pi/install.sh durchgereicht.
 # ============================================================
 set -euo pipefail
 
@@ -19,7 +19,7 @@ DEST="$HOME/school-signage-src"
 
 echo "== Schule Neckertal Signage – Setup =="
 echo "PlayerId:  ${PLAYER_ID:-(Hostname)}"
-echo "Manifest:  ${MANIFEST_URL:-(Standard aus install.sh)}"
+echo "Gruppe:    ${GROUP_ID:-(Standard aus install.sh)}"
 echo
 
 if ! command -v git >/dev/null 2>&1; then
