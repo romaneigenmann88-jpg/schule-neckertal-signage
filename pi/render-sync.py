@@ -103,18 +103,17 @@ def main():
         log("Keine googleSlidesId in der Config – nichts zu tun.")
         return 1
 
-    # 2) Google-Export holen (PDF + PPTX)
+    # 2) Nur die (kleine) PDF holen – sie genuegt fuer die Aenderungserkennung.
+    #    Google liefert keinen ETag/Last-Modified, daher MUSS man etwas laden;
+    #    die groessere PPTX (~2 MB) holen wir aber erst, wenn wirklich gerendert
+    #    wird -> spart auf "unveraenderten" Laeufen ~85 % Bandbreite.
     try:
         pdf = fetch(GOOGLE.format(id=gid_src, fmt="pdf"))
-        pptx = fetch(GOOGLE.format(id=gid_src, fmt="pptx"))
     except Exception as e:
-        log(f"Google-Export nicht erreichbar ({e}). Aktuelle Version bleibt aktiv.")
+        log(f"Google-PDF nicht erreichbar ({e}). Aktuelle Version bleibt aktiv.")
         return 1
     if not pdf.startswith(b"%PDF"):
         log("Google-PDF ungueltig (nicht oeffentlich freigegeben?). Aktuelle Version bleibt aktiv.")
-        return 1
-    if not pptx.startswith(b"PK"):
-        log("Google-PPTX ungueltig. Aktuelle Version bleibt aktiv.")
         return 1
 
     # 3) Aenderungserkennung: Hash aus PDF + Config
@@ -123,8 +122,18 @@ def main():
     h.update(config_raw)
     source_hash = h.hexdigest()
     if source_hash == active_source_hash(web_dir):
-        log("Keine Aenderung (gleicher Inhalt). Nichts zu rendern.")
+        log("Keine Aenderung (gleicher Inhalt) – keine PPTX geladen, nichts zu rendern.")
         return 0
+
+    # Geaendert -> JETZT erst die PPTX holen (nur fuer Notizen/Dauer + versteckte).
+    try:
+        pptx = fetch(GOOGLE.format(id=gid_src, fmt="pptx"))
+    except Exception as e:
+        log(f"Google-PPTX nicht erreichbar ({e}). Aktuelle Version bleibt aktiv.")
+        return 1
+    if not pptx.startswith(b"PK"):
+        log("Google-PPTX ungueltig. Aktuelle Version bleibt aktiv.")
+        return 1
 
     version = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     log(f"Neuer Inhalt erkannt -> rendere Version {version} ...")

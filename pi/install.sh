@@ -61,6 +61,11 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-pptx >/dev/nu
   sudo pip3 install --break-system-packages --quiet python-pptx >/dev/null 2>&1 || \
   sudo pip3 install --quiet python-pptx >/dev/null 2>&1 || true
 
+# Zeitzone erzwingen: der Zeitplan (Bildschirm an/aus) und die Uhr haengen an
+# der lokalen Zeit. Ohne das laeuft ein nicht korrekt geflashter Pi auf UTC
+# (-> Bildschirm 2 h falsch). Ueberschreibbar via SIGNAGE_TZ.
+sudo timedatectl set-timezone "${SIGNAGE_TZ:-Europe/Zurich}" 2>/dev/null || true
+
 # ---------- 2. Verzeichnisse ----------
 echo "[2/10] Verzeichnisse anlegen ..."
 sudo mkdir -p "$INSTALL_DIR"
@@ -184,11 +189,11 @@ ExecStart=/bin/sh $INSTALL_DIR/bin/heartbeat.sh
 UNIT
 sudo tee /etc/systemd/system/signage-heartbeat.timer >/dev/null <<'UNIT'
 [Unit]
-Description=Schule Neckertal Signage - Heartbeat alle 5 Minuten
+Description=Schule Neckertal Signage - Heartbeat alle 10 Minuten
 
 [Timer]
 OnBootSec=50s
-OnUnitActiveSec=5min
+OnUnitActiveSec=10min
 Persistent=true
 
 [Install]
