@@ -59,6 +59,23 @@ export default {
     }
 
     // ----------------------------------------------------------
+    //  Bildschirm aus der Liste entfernen (alten/neu geflashten Pi loeschen)
+    //  POST /delete-player {playerId}  -> loescht den Heartbeat-Eintrag.
+    //  Hinweis: Sendet der Pi noch Heartbeats, taucht er beim naechsten
+    //  (spaetestens nach ~10 Min) wieder auf -> dann ist er eben noch aktiv.
+    // ----------------------------------------------------------
+    if (path === '/delete-player') {
+      if (request.method !== 'POST') return resp('POST noetig', 405);
+      let body;
+      try { body = await request.json(); } catch { return resp('bad json', 400); }
+      const pid = String(body.playerId || '').slice(0, 100);
+      if (!pid) return resp('playerId fehlt', 400);
+      await env.HEARTBEATS.delete('p:' + pid);
+      await env.HEARTBEATS.delete('c:' + pid);   // evtl. offenen Befehl mitloeschen
+      return json({ ok: true, playerId: pid, deleted: true });
+    }
+
+    // ----------------------------------------------------------
     //  Einstellungen je Gruppe
     // ----------------------------------------------------------
     if (path === '/settings' || path.startsWith('/settings/')) {

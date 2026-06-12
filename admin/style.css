@@ -47,6 +47,12 @@ main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
 .cmd-btn.danger { border-color: #f0b4bf; color: var(--rot); background: #fdf2f4; }
 .cmd-btn.danger:hover { background: #fbe3e8; }
 .cmd-btn:disabled { opacity: .6; cursor: default; }
+.del-btn {
+  border: 1px solid #d1d5db; background: #fff; color: var(--grau);
+  border-radius: 6px; font-size: 11px; padding: 2px 8px; cursor: pointer; margin-left: 4px;
+}
+.del-btn:hover { background: #fbe3e8; border-color: #f0b4bf; color: var(--rot); }
+.del-btn:disabled { opacity: .6; cursor: default; }
 .actions { margin-top: auto; display: flex; gap: 8px; padding-top: 6px; }
 .btn {
   flex: 1; text-align: center; padding: 8px 10px; border-radius: 8px;

@@ -152,6 +152,7 @@ function liveStatusHtml(players, currentVersion) {
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-off">Kiosk verlassen</button>
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-on">Kiosk starten</button>
         <button class="cmd-btn danger" data-pid="${pid}" data-action="reboot">Neustart</button>
+        <button class="del-btn" data-pid="${pid}" title="Diesen Bildschirm aus der Liste entfernen (z. B. nach Neu-Flashen)">✕ entfernen</button>
       </span></div>`;
   }).join('');
   return `<div class="livestatus">${rows}</div>`;
@@ -197,6 +198,26 @@ document.addEventListener('click', async (e) => {
     b.textContent = '⚠ Fehler';
   }
   setTimeout(() => { b.textContent = orig; b.disabled = false; }, 2500);
+});
+
+// Bildschirm aus der Liste entfernen (z. B. nach Neu-Flashen / Ausmustern).
+document.addEventListener('click', async (e) => {
+  const b = e.target.closest && e.target.closest('.del-btn');
+  if (!b) return;
+  const pid = b.dataset.pid;
+  if (!confirm(`Bildschirm „${pid}" aus der Liste entfernen?\n\nHinweis: Läuft der Pi noch, meldet er sich spätestens nach ~10 Min wieder.`)) return;
+  b.disabled = true; b.textContent = '…';
+  try {
+    const r = await fetch(`${HEARTBEAT_URL}/delete-player`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ playerId: pid }),
+    });
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const row = b.closest('.pl');
+    if (row) row.remove();   // sofort aus der Anzeige nehmen (KV-Liste ist kurz verzögert)
+  } catch (err) {
+    b.textContent = '⚠'; b.disabled = false;
+  }
 });
 function relTime(ms) {
   if (!ms) return '–';
