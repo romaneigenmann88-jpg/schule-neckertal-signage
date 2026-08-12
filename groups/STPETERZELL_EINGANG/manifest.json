@@ -1,7 +1,7 @@
 {
   "groupId": "STPETERZELL_EINGANG",
   "title": "St. Peterzell - Eingang",
-  "version": "2026-08-11T07:39:06Z",
+  "version": "2026-08-12T07:47:58Z",
   "sourceHash": "1ddbfe28c58206769d4f86f7fb0ea5e07df89fd47b4ad025a2816f23a43b1b80",
   "players": [],
   "editUrl": "https://docs.google.com/presentation/d/1kuY1Fun8uBMWQs4IZnuNqXlE1EhJGnCE4D4A78VuMis/edit",
@@ -9,28 +9,28 @@
   "schedule": {
     "monday": {
       "active": true,
-      "from": "07:00",
-      "until": "18:00"
+      "from": "06:10",
+      "until": "19:00"
     },
     "tuesday": {
       "active": true,
-      "from": "07:00",
-      "until": "18:00"
+      "from": "06:10",
+      "until": "19:00"
     },
     "wednesday": {
       "active": true,
-      "from": "07:00",
-      "until": "18:00"
+      "from": "06:10",
+      "until": "19:00"
     },
     "thursday": {
       "active": true,
-      "from": "07:00",
-      "until": "18:00"
+      "from": "06:10",
+      "until": "19:00"
     },
     "friday": {
       "active": true,
-      "from": "07:00",
-      "until": "18:00"
+      "from": "06:10",
+      "until": "19:00"
     },
     "saturday": {
       "active": false
@@ -44,34 +44,19 @@
     "type": "renderedPowerPoint",
     "slides": [
       {
-        "file": "slides/2026-08-11T07-39-06Z/slide-001.png",
+        "file": "slides/2026-08-12T07-47-58Z/slide-001.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 1
       },
       {
-        "file": "slides/2026-08-11T07-39-06Z/slide-002.png",
-        "durationSeconds": 7,
+        "file": "slides/2026-08-12T07-47-58Z/slide-002.png",
+        "durationSeconds": 15,
         "sourceSlideNumber": 2
       },
       {
-        "file": "slides/2026-08-11T07-39-06Z/slide-003.png",
+        "file": "slides/2026-08-12T07-47-58Z/slide-003.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 3
-      },
-      {
-        "file": "slides/2026-08-11T07-39-06Z/slide-004.png",
-        "durationSeconds": 7,
-        "sourceSlideNumber": 4
-      },
-      {
-        "file": "slides/2026-08-11T07-39-06Z/slide-005.png",
-        "durationSeconds": 7,
-        "sourceSlideNumber": 5
-      },
-      {
-        "file": "slides/2026-08-11T07-39-06Z/slide-006.png",
-        "durationSeconds": 7,
-        "sourceSlideNumber": 6
       }
     ]
   },
