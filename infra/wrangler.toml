@@ -1,0 +1,10 @@
+name = "signage-heartbeat"
+main = "heartbeat-worker.js"
+compatibility_date = "2024-09-01"
+workers_dev = true
+
+# Produktiver KV-Namespace (enthaelt p:/s:/c: Keys). NICHT aendern -
+# sonst verliert der Worker Zugriff auf Einstellungen + Heartbeats.
+[[kv_namespaces]]
+binding = "HEARTBEATS"
+id = "6d3bb8695e534df9978cac74b4d7022b"
