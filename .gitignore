@@ -23,3 +23,6 @@ __pycache__/
 *.pyc
 /render/font-check/
 /gtest/
+
+# Wrangler (lokaler Cache/State, entsteht bei 'wrangler deploy')
+.wrangler/
