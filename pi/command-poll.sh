@@ -19,7 +19,7 @@ HB=$(python3 -c "import json;print(json.load(open('$DEV')).get('heartbeatUrl',''
 PID=$(python3 -c "import json;print(json.load(open('$DEV')).get('playerId',''))" 2>/dev/null || echo "")
 [ -n "$HB" ] && [ -n "$PID" ] || exit 0
 
-RESP=$(curl -fsS --max-time 8 "$HB/command/$PID?t=$(date +%s)" 2>/dev/null) || exit 0
+RESP=$(curl -4 -fsS --max-time 8 "$HB/command/$PID?t=$(date +%s)" 2>/dev/null) || exit 0
 ACTION=$(printf '%s' "$RESP" | python3 -c "import sys,json;d=json.load(sys.stdin);print(d.get('action') or '')" 2>/dev/null || echo "")
 TS=$(printf '%s' "$RESP" | python3 -c "import sys,json;d=json.load(sys.stdin);print(int(d.get('ts') or 0))" 2>/dev/null || echo 0)
 [ -n "$ACTION" ] || exit 0

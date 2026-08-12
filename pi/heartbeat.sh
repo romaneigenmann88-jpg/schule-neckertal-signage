@@ -15,6 +15,6 @@ PID=$(read_json "$DEV" playerId)
 VER=$(read_json "$MAN" version)
 GID=$(read_json "$MAN" groupId)
 
-curl -fsS -m 15 -X POST -H "Content-Type: application/json" \
+curl -4 -fsS -m 15 -X POST -H "Content-Type: application/json" \
   -d "{\"playerId\":\"${PID}\",\"groupId\":\"${GID}\",\"version\":\"${VER}\",\"hostname\":\"$(hostname)\"}" \
   "$HB" >/dev/null 2>&1 || true

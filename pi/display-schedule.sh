@@ -51,12 +51,21 @@ case "$1" in
   off) screen_off; exit 0 ;;
 esac
 
-# Zeitplan bestimmen: Worker bevorzugt, sonst Manifest.
+# Zeitplan bestimmen: Worker bevorzugt, sonst letzter guter Stand, sonst Manifest.
+# WICHTIG: -4 (IPv4 erzwingen). Auf manchen Netzen ist IPv6 kaputt (Adressen
+# werden aufgeloest, aber keine Route) -> die Namensaufloesung laeuft sonst in
+# einen 5s-Timeout und der Worker-Zeitplan kaeme NIE an (Fallback auf alte Zeit).
 HB=$(python3 -c "import json;print(json.load(open('$DEV')).get('heartbeatUrl',''))" 2>/dev/null || echo "")
 GID=$(python3 -c "import json;print(json.load(open('$MAN')).get('groupId',''))" 2>/dev/null || echo "")
+CACHE="${SIGNAGE_SETTINGS_CACHE:-/opt/school-signage/config/last-settings.json}"
 SETTINGS=""
 if [ -n "$HB" ] && [ -n "$GID" ]; then
-  SETTINGS=$(curl -fsS --max-time 5 "$HB/settings/$GID?t=$(date +%s)" 2>/dev/null || echo "")
+  SETTINGS=$(curl -4 -fsS --max-time 8 --retry 1 --retry-delay 1 "$HB/settings/$GID?t=$(date +%s)" 2>/dev/null || echo "")
+  if [ -n "$SETTINGS" ]; then
+    printf '%s' "$SETTINGS" > "$CACHE" 2>/dev/null || true     # letzten guten Stand merken
+  elif [ -f "$CACHE" ]; then
+    SETTINGS=$(cat "$CACHE" 2>/dev/null || echo "")            # Worker kurz weg -> letzter Stand
+  fi
 fi
 
 desired=$(SETTINGS_JSON="$SETTINGS" python3 - "$MAN" <<'PY'

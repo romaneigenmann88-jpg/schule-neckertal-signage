@@ -8,28 +8,28 @@
   "schedule": {
     "monday": {
       "active": true,
-      "from": "07:00",
-      "until": "18:00"
+      "from": "06:10",
+      "until": "19:00"
     },
     "tuesday": {
       "active": true,
-      "from": "07:00",
-      "until": "18:00"
+      "from": "06:10",
+      "until": "19:00"
     },
     "wednesday": {
       "active": true,
-      "from": "07:00",
-      "until": "18:00"
+      "from": "06:10",
+      "until": "19:00"
     },
     "thursday": {
       "active": true,
-      "from": "07:00",
-      "until": "18:00"
+      "from": "06:10",
+      "until": "19:00"
     },
     "friday": {
       "active": true,
-      "from": "07:00",
-      "until": "18:00"
+      "from": "06:10",
+      "until": "19:00"
     },
     "saturday": {
       "active": false
