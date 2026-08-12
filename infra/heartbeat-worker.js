@@ -114,6 +114,10 @@ export default {
         groupId: String(body.groupId || '').slice(0, 100),
         version: String(body.version || '').slice(0, 60),
         hostname: String(body.hostname || '').slice(0, 100),
+        ip: String(body.ip || '').slice(0, 60),        // aktive lokale IP
+        conn: String(body.conn || '').slice(0, 20),    // LAN / WLAN
+        iface: String(body.iface || '').slice(0, 20),  // eth0 / wlan0
+        ssid: String(body.ssid || '').slice(0, 40),    // WLAN-Name (nur bei WLAN)
         lastSeen: new Date().toISOString(),
       };
       // 7 Tage nach dem letzten Lebenszeichen automatisch vergessen
