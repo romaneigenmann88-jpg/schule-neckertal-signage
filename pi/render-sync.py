@@ -30,13 +30,35 @@ import json
 import os
 import subprocess
 import sys
+import socket
+import time
 import urllib.request
 from datetime import datetime, timezone
+
+# IPv4 erzwingen: Auf manchen Standort-Netzen wird IPv6 zwar aufgeloest, hat aber
+# keine Route -> getaddrinfo/urllib bleiben an der IPv6-Adresse haengen (5s-DNS-
+# Timeouts). Wir liefern nur noch IPv4 zurueck (wie 'curl -4' in den Shell-Skripten).
+_orig_getaddrinfo = socket.getaddrinfo
+def _getaddrinfo_ipv4_only(host, port, family=0, type=0, proto=0, flags=0):
+    return _orig_getaddrinfo(host, port, socket.AF_INET, type, proto, flags)
+socket.getaddrinfo = _getaddrinfo_ipv4_only
 
 CONFIG_PATH = os.environ.get("SIGNAGE_DEVICE_JSON", "/opt/school-signage/config/device.json")
 BIN_DIR = os.path.dirname(os.path.abspath(__file__))
 TIMEOUT = 30
 GOOGLE = "https://docs.google.com/presentation/d/{id}/export/{fmt}"
+
+# Selbst-Update: welche Repo-Dateien in bin/ gespiegelt werden (repo-Pfad ->
+# (Zielname, ausfuehrbar?)). Nach einem git push zieht render-sync diese bei
+# seinem naechsten Lauf nach -> ALLE online Pis reparieren sich ohne SSH selbst.
+MANAGED_FILES = {
+    "pi/render-sync.py":         ("render-sync.py", True),
+    "pi/display-schedule.sh":    ("display-schedule.sh", True),
+    "pi/heartbeat.sh":           ("heartbeat.sh", True),
+    "pi/command-poll.sh":        ("command-poll.sh", True),
+    "tools/build_manifest.py":   ("build_manifest.py", False),
+    "tools/normalize_slides.py": ("normalize_slides.py", False),
+}
 
 
 def log(msg):
@@ -67,6 +89,68 @@ def _rmtree(path):
     shutil.rmtree(path, ignore_errors=True)
 
 
+def _repo_raw_base(config_url):
+    """Aus der configUrl (.../main/groups/<gid>/config.json) die Repo-Raw-Basis
+    (.../main) ableiten -> von dort holen wir die bin/-Skripte."""
+    i = config_url.find("/groups/")
+    return config_url[:i] if i != -1 else None
+
+
+def _valid_source(repo_path, data):
+    """Nur syntaktisch plausible Dateien uebernehmen (schuetzt vor kaputtem
+    Teil-Download, der sonst die ganze Flotte lahmlegen koennte)."""
+    if not data:
+        return False
+    if repo_path.endswith(".py"):
+        try:
+            compile(data.decode("utf-8"), repo_path, "exec")
+        except Exception:
+            return False
+    elif repo_path.endswith(".sh"):
+        if not data.lstrip().startswith(b"#!"):
+            return False
+    return True
+
+
+def self_update(config_url, bin_dir):
+    """Spiegelt die MANAGED_FILES aus dem Repo nach bin/ (token-frei, IPv4).
+    Jeder Fehler ist unkritisch: das File bleibt dann unveraendert, die Anzeige
+    laeuft weiter. Aktualisiertes render-sync.py greift beim naechsten Lauf."""
+    base = _repo_raw_base(config_url)
+    if not base:
+        return
+    for repo_path, (name, execbit) in MANAGED_FILES.items():
+        url = base + "/" + repo_path
+        bust = ("&" if "?" in url else "?") + "t=" + str(int(time.time()))
+        try:
+            data = fetch(url + bust, timeout=15)
+        except Exception:
+            continue                       # Netz kurz weg -> spaeter erneut
+        if not _valid_source(repo_path, data):
+            continue
+        target = os.path.join(bin_dir, name)
+        try:
+            with open(target, "rb") as f:
+                if f.read() == data:
+                    continue               # schon aktuell
+        except OSError:
+            pass
+        tmp = target + ".tmp"
+        try:
+            with open(tmp, "wb") as f:
+                f.write(data)
+            if execbit:
+                os.chmod(tmp, 0o755)
+            os.replace(tmp, target)        # atomar
+            log(f"Selbst-Update: {name} aktualisiert ({len(data)} Bytes).")
+        except OSError as e:
+            log(f"Selbst-Update {name} fehlgeschlagen ({e}) - unveraendert.")
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
+
+
 def main():
     with open(CONFIG_PATH, encoding="utf-8") as f:
         cfg = json.load(f)
@@ -87,6 +171,10 @@ def main():
     except BlockingIOError:
         log("Ein anderer Lauf ist aktiv – uebersprungen.")
         return 0
+
+    # 0) Selbst-Update der bin/-Skripte aus dem Repo. So erreicht ein 'git push'
+    #    ALLE online Pis automatisch (ohne SSH/Netzzugang zum Pi).
+    self_update(config_url, BIN_DIR)
 
     # 1) Config holen (mit Cache-Buster gegen raw-CDN)
     import time as _t
