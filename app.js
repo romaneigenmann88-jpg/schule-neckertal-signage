@@ -147,7 +147,11 @@ function liveStatusHtml(players, currentVersion) {
     // Kein Versionsvergleich mehr: jeder Pi rendert selbst und hat einen eigenen
     // Render-Zeitstempel, der nie mit dem GitHub-Pages-Stempel uebereinstimmt.
     const pid = attr(p.playerId);
-    return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}
+    const netIcon = p.conn === 'WLAN' ? '📶' : (p.conn === 'LAN' ? '🔌' : '🌐');
+    const net = p.ip
+      ? ` · ${netIcon} ${esc(p.ip)}${p.conn ? ' ' + esc(p.conn) : ''}${(p.conn === 'WLAN' && p.ssid) ? ' (' + esc(p.ssid) + ')' : ''}`
+      : '';
+    return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${net}
       <span class="cmds" title="Fernwartung – der Bildschirm fuehrt es in ca. 20 Sek. aus">
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-off">Kiosk verlassen</button>
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-on">Kiosk starten</button>
