@@ -151,7 +151,12 @@ function liveStatusHtml(players, currentVersion) {
     const net = p.ip
       ? ` · ${netIcon} ${esc(p.ip)}${p.conn ? ' ' + esc(p.conn) : ''}${(p.conn === 'WLAN' && p.ssid) ? ' (' + esc(p.ssid) + ')' : ''}`
       : '';
-    return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${net}
+    // Display-Frische: Bild lebt (Browser fragt an) oder haengt?
+    const df = p.displayFreshSec;
+    const disp = (online && typeof df === 'number')
+      ? (df < 0 || df > 300 ? ' · ⚠️ Bild steht?' : ' · 🖥 Bild aktiv')
+      : '';
+    return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${net}${disp}
       <span class="cmds" title="Fernwartung – der Bildschirm fuehrt es in ca. 20 Sek. aus">
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-off">Kiosk verlassen</button>
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-on">Kiosk starten</button>

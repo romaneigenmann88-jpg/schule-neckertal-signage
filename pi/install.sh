@@ -85,6 +85,8 @@ cp "$REPO_ROOT/tools/build_manifest.py" "$INSTALL_DIR/bin/build_manifest.py"
 cp "$REPO_ROOT/tools/normalize_slides.py" "$INSTALL_DIR/bin/normalize_slides.py"
 cp "$REPO_ROOT/pi/display-schedule.sh" "$INSTALL_DIR/bin/display-schedule.sh"
 chmod +x "$INSTALL_DIR/bin/display-schedule.sh"
+cp "$REPO_ROOT/pi/display-watchdog.sh" "$INSTALL_DIR/bin/display-watchdog.sh"
+chmod +x "$INSTALL_DIR/bin/display-watchdog.sh"
 cp "$REPO_ROOT/pi/heartbeat.sh" "$INSTALL_DIR/bin/heartbeat.sh"
 chmod +x "$INSTALL_DIR/bin/heartbeat.sh"
 cp "$REPO_ROOT/pi/command-poll.sh" "$INSTALL_DIR/bin/command-poll.sh"
@@ -189,11 +191,11 @@ ExecStart=/bin/sh $INSTALL_DIR/bin/heartbeat.sh
 UNIT
 sudo tee /etc/systemd/system/signage-heartbeat.timer >/dev/null <<'UNIT'
 [Unit]
-Description=Schule Neckertal Signage - Heartbeat alle 10 Minuten
+Description=Schule Neckertal Signage - Heartbeat alle 15 Minuten
 
 [Timer]
 OnBootSec=50s
-OnUnitActiveSec=10min
+OnUnitActiveSec=15min
 Persistent=true
 
 [Install]

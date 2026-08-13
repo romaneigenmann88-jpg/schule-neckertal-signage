@@ -12,6 +12,17 @@ HB=$(read_json "$DEV" heartbeatUrl)
 PID=$(read_json "$DEV" playerId)
 [ -n "$HB" ] || exit 0
 
+# Schreib-Sparbremse fuers KV-Budget (Gratis-Tarif = 1000 KV-Writes/Tag): pro Pi
+# hoechstens ~alle 15 Min tatsaechlich senden. Der systemd-Timer darf oefter
+# feuern - wir senden aber nur, wenn genug Zeit vergangen ist. Gestempelt wird
+# NUR bei erfolgreichem Senden (sonst wird sofort erneut versucht).
+STAMP="${SIGNAGE_HB_STAMP:-/opt/school-signage/config/last-heartbeat-ts}"
+MIN_INTERVAL="${SIGNAGE_HB_MIN_INTERVAL:-840}"   # ~14 Min
+NOW=$(date +%s)
+LASTHB=$(cat "$STAMP" 2>/dev/null || echo 0)
+case "$LASTHB" in ''|*[!0-9]*) LASTHB=0 ;; esac
+[ $((NOW - LASTHB)) -lt "$MIN_INTERVAL" ] && exit 0
+
 VER=$(read_json "$MAN" version)
 GID=$(read_json "$MAN" groupId)
 
@@ -33,6 +44,15 @@ if [ "$CONN" = "WLAN" ]; then
   SSID=$(printf '%s' "$SSID" | sed 's/["\\]//g' | cut -c1-32)   # JSON-sicher machen
 fi
 
-curl -4 -fsS -m 15 -X POST -H "Content-Type: application/json" \
-  -d "{\"playerId\":\"${PID}\",\"groupId\":\"${GID}\",\"version\":\"${VER}\",\"hostname\":\"$(hostname)\",\"ip\":\"${IP}\",\"conn\":\"${CONN}\",\"iface\":\"${IFACE}\",\"ssid\":\"${SSID}\"}" \
-  "$HB" >/dev/null 2>&1 || true
+# Display-Frische: Sekunden seit der letzten Browser-Anfrage an den lokalen
+# Server (der Player fragt jede Minute manifest.json ab). Grosser Wert / -1 =
+# Bild haengt oder Browser weg. Kostet KEINEN zusaetzlichen KV-Write (reist im
+# ohnehin faelligen Heartbeat mit).
+LASTGET=$(journalctl -u signage-server.service -o short-unix --since "-30min" 2>/dev/null | grep -F "GET /content/manifest.json" | tail -1 | cut -d. -f1)
+case "$LASTGET" in ''|*[!0-9]*) DISPLAY_FRESH=-1 ;; *) DISPLAY_FRESH=$((NOW - LASTGET)) ;; esac
+
+if curl -4 -fsS -m 15 -X POST -H "Content-Type: application/json" \
+  -d "{\"playerId\":\"${PID}\",\"groupId\":\"${GID}\",\"version\":\"${VER}\",\"hostname\":\"$(hostname)\",\"ip\":\"${IP}\",\"conn\":\"${CONN}\",\"iface\":\"${IFACE}\",\"ssid\":\"${SSID}\",\"displayFreshSec\":${DISPLAY_FRESH}}" \
+  "$HB" >/dev/null 2>&1; then
+  echo "$NOW" > "$STAMP"     # nur bei Erfolg als gesendet merken
+fi

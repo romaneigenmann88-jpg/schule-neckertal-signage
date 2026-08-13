@@ -54,6 +54,7 @@ GOOGLE = "https://docs.google.com/presentation/d/{id}/export/{fmt}"
 MANAGED_FILES = {
     "pi/render-sync.py":         ("render-sync.py", True),
     "pi/display-schedule.sh":    ("display-schedule.sh", True),
+    "pi/display-watchdog.sh":    ("display-watchdog.sh", True),
     "pi/heartbeat.sh":           ("heartbeat.sh", True),
     "pi/command-poll.sh":        ("command-poll.sh", True),
     "tools/build_manifest.py":   ("build_manifest.py", False),

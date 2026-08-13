@@ -118,6 +118,7 @@ export default {
         conn: String(body.conn || '').slice(0, 20),    // LAN / WLAN
         iface: String(body.iface || '').slice(0, 20),  // eth0 / wlan0
         ssid: String(body.ssid || '').slice(0, 40),    // WLAN-Name (nur bei WLAN)
+        displayFreshSec: Number.isFinite(+body.displayFreshSec) ? Math.trunc(+body.displayFreshSec) : null, // Sek. seit letzter Browser-Anfrage (Bild lebt?)
         lastSeen: new Date().toISOString(),
       };
       // 7 Tage nach dem letzten Lebenszeichen automatisch vergessen

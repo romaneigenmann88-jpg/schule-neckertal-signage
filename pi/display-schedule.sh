@@ -51,6 +51,13 @@ case "$1" in
   off) screen_off; exit 0 ;;
 esac
 
+# Display-Watchdog bei jedem periodischen Lauf (jede Minute) mitlaufen lassen:
+# erkennt einen eingefrorenen Browser und startet ihn neu. Eigene Guards, stoert
+# die HDMI-Logik nicht. So braucht es keinen eigenen systemd-Timer (den bestehende
+# Pis per Self-Update nicht bekommen koennten).
+WD="$(dirname "$0")/display-watchdog.sh"
+[ -f "$WD" ] && sh "$WD" 2>/dev/null || true
+
 # Zeitplan bestimmen: Worker bevorzugt, sonst letzter guter Stand, sonst Manifest.
 # WICHTIG: -4 (IPv4 erzwingen). Auf manchen Netzen ist IPv6 kaputt (Adressen
 # werden aufgeloest, aber keine Route) -> die Namensaufloesung laeuft sonst in
