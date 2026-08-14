@@ -160,9 +160,10 @@ function liveStatusHtml(players, currentVersion) {
     // der Inhalt laengst nicht mehr nachgeliefert wird - genau der OZN-Fall.)
     const sa = p.syncAgeSec;
     const sync = !online ? ''
-      : p.syncStuck ? ' · 🔴 Sync haengt!'
-      : (typeof sa === 'number' && sa >= 0 && sa > 1800) ? ` · ⚠️ kein Sync seit ${Math.round(sa / 60)} Min`
-      : '';
+      : p.syncStuck ? ' · 🔴 Sync hängt!'
+      : (typeof sa !== 'number' || sa < 0) ? ''
+      : sa > 1800 ? ` · ⚠️ kein Inhalts-Sync seit ${fmtAge(sa)}`
+      : ` · 🔄 Sync vor ${fmtAge(sa)}`;
     return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${net}${disp}${sync}
       <span class="cmds" title="Fernwartung – der Bildschirm fuehrt es in ca. 20 Sek. aus">
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-off">Kiosk verlassen</button>
@@ -501,6 +502,12 @@ function fmtDate(iso) {
   try {
     return new Date(iso).toLocaleString('de-CH', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
   } catch (e) { return iso || '–'; }
+}
+// Sekunden menschenlesbar: "40 Sek" / "3 Min" / "2 Std"
+function fmtAge(sec) {
+  if (sec < 90) return `${Math.round(sec)} Sek`;
+  if (sec < 5400) return `${Math.round(sec / 60)} Min`;
+  return `${Math.round(sec / 3600)} Std`;
 }
 function esc(s) { return String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c])); }
 function attr(s) { return esc(s); }
