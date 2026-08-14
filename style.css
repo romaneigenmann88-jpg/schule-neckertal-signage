@@ -130,3 +130,10 @@ main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
 .preview-nav { display: flex; align-items: center; justify-content: center; gap: 16px; color: #fff; margin-top: 8px; }
 .preview-nav button { background: #333; color: #fff; border: none; border-radius: 6px; font-size: 20px; width: 44px; height: 36px; cursor: pointer; }
 .close { position: absolute; top: 6px; right: 10px; background: transparent; color: #fff; border: none; font-size: 28px; cursor: pointer; }
+
+/* Verlauf (Ereignis-Protokoll) */
+.eventlog { margin-top: .6rem; max-height: 22rem; overflow-y: auto; font-size: .92rem; }
+.eventlog .ev { padding: .3rem 0; border-bottom: 1px solid rgba(127, 127, 127, .18); }
+.eventlog .ev:last-child { border-bottom: 0; }
+.eventlog .ev-t { color: #6b7280; font-variant-numeric: tabular-nums; margin-right: .4rem; }
+#eventlog-box summary { cursor: pointer; }

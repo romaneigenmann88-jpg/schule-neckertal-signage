@@ -158,13 +158,20 @@ function liveStatusHtml(players, currentVersion) {
       : '';
     // Inhalts-Nachschub: laeuft render-sync noch? (Browser kann laufen, waehrend
     // der Inhalt laengst nicht mehr nachgeliefert wird - genau der OZN-Fall.)
+    // WICHTIG: syncAgeSec ist eine Momentaufnahme aus dem letzten Heartbeat
+    // (nur alle ~15 Min). Ohne das Heartbeat-Alter dazuzurechnen, stuende da
+    // "Sync vor 2 Min" obwohl der Bildschirm zuletzt vor 11 Min gemeldet hat.
     const sa = p.syncAgeSec;
+    const hbAge = Math.max(0, (now - seen) / 1000);
+    const effSync = (typeof sa === 'number' && sa >= 0) ? sa + hbAge : null;
     const sync = !online ? ''
       : p.syncStuck ? ' · 🔴 Sync hängt!'
-      : (typeof sa !== 'number' || sa < 0) ? ''
-      : sa > 1800 ? ` · ⚠️ kein Inhalts-Sync seit ${fmtAge(sa)}`
-      : ` · 🔄 Sync vor ${fmtAge(sa)}`;
-    return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${net}${disp}${sync}
+      : effSync === null ? ''
+      : effSync > 2700 ? ` · ⚠️ kein Inhalts-Sync seit ${fmtAge(effSync)}`
+      : ` · 🔄 Sync vor ${fmtAge(effSync)}`;
+    // Wann wurde der Inhalt dieses Bildschirms zuletzt neu erzeugt?
+    const inhalt = p.version ? ` · 📄 Inhalt: ${fmtDate(p.version)}` : '';
+    return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${net}${disp}${sync}${inhalt}
       <span class="cmds" title="Fernwartung – der Bildschirm fuehrt es in ca. 20 Sek. aus">
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-off">Kiosk verlassen</button>
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-on">Kiosk starten</button>
@@ -193,6 +200,35 @@ async function refreshLiveStatus() {
   }
 }
 setInterval(refreshLiveStatus, 60 * 1000);
+
+// ============================================================
+//  Verlauf (Ereignis-Protokoll vom Worker)
+// ============================================================
+const EVENT_ICON = { inhalt: '📄', zurueck: '🔌', problem: '🔴', ok: '✅', neu: '🆕' };
+
+async function loadEventLog() {
+  const box = $('eventlog');
+  if (!box) return;
+  let events;
+  try {
+    const d = await (await fetch(`${HEARTBEAT_URL}/events?n=${Date.now()}`, { cache: 'no-store' })).json();
+    events = d.events || [];
+  } catch (e) {
+    box.textContent = 'Verlauf nicht erreichbar.';
+    return;
+  }
+  if (!events.length) {
+    box.textContent = 'Noch keine Ereignisse aufgezeichnet.';
+    return;
+  }
+  box.innerHTML = events.slice(0, 60).map((e) =>
+    `<div class="ev"><span class="ev-t">${fmtDate(e.ts)}</span> ${EVENT_ICON[e.type] || '•'} <strong>${esc(e.playerId || '')}</strong> ${esc(e.text || '')}</div>`
+  ).join('');
+}
+const logBox = $('eventlog-box');
+if (logBox) logBox.addEventListener('toggle', () => { if (logBox.open) loadEventLog(); });
+loadEventLog();
+setInterval(() => { if (logBox && logBox.open) loadEventLog(); }, 60 * 1000);
 
 // Fernwartung: Klick auf einen Befehls-Knopf -> Befehl im Worker ablegen.
 // Der Pi holt ihn beim naechsten Poll (~20s) und fuehrt ihn aus.
