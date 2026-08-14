@@ -135,6 +135,7 @@ export default {
         syncAgeSec: Number.isFinite(+body.syncAgeSec) ? Math.trunc(+body.syncAgeSec) : null,               // Sek. seit letztem erfolgreichen render-sync
         syncStuck: body.syncStuck ? 1 : 0,                                                                  // 1 = Sync-Sperre haengt fest
         slideCount: Number.isFinite(+body.slideCount) ? Math.trunc(+body.slideCount) : null,                // Folien, die dieser Bildschirm zeigt
+        contentHash: String(body.contentHash || '').slice(0, 80),                                           // Fingerabdruck der sichtbaren Folien
         lastSeen: new Date().toISOString(),
       };
       // Ereignisse erkennen: Vergleich mit dem vorherigen Stand. Nur bei einer
@@ -142,11 +143,21 @@ export default {
       const prevRaw = await env.HEARTBEATS.get('p:' + id);
       const prev = prevRaw ? JSON.parse(prevRaw) : null;
       const events = [];
+      // Wann wurde der INHALT zuletzt wirklich veraendert? Der contentHash
+      // beschreibt die sichtbaren Folien. Aendert sich nur die Version (Pi hat
+      // neu gerendert, z. B. nach einer Einstellungsaenderung), ist das KEINE
+      // Inhaltsaenderung - und darf auch nicht als solche protokolliert werden.
+      rec.contentChangedAt = prev ? (prev.contentChangedAt || null) : null;
       if (!prev) {
         events.push({ type: 'neu', text: 'Bildschirm zum ersten Mal gemeldet' });
       } else {
-        if (prev.version && rec.version && prev.version !== rec.version) {
-          events.push({ type: 'inhalt', text: `Neuer Inhalt aktiv (${rec.version})` });
+        const hadHash = !!prev.contentHash;
+        if (hadHash && rec.contentHash && prev.contentHash !== rec.contentHash) {
+          rec.contentChangedAt = rec.lastSeen;
+          events.push({ type: 'inhalt', text: 'Folien geändert – neuer Inhalt wird angezeigt' });
+        } else if (prev.version && rec.version && prev.version !== rec.version) {
+          // Neu gerendert, aber Bildinhalt identisch -> nur leise vermerken.
+          events.push({ type: 'render', text: 'Neu aufbereitet (Inhalt unverändert)' });
         }
         const gap = (Date.parse(rec.lastSeen) - Date.parse(prev.lastSeen)) / 60000;
         if (Number.isFinite(gap) && gap > 45) {

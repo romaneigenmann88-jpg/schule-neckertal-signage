@@ -127,6 +127,41 @@ def _rmtree(path):
     shutil.rmtree(path, ignore_errors=True)
 
 
+def ensure_content_hash(web_dir):
+    """Fehlt dem AKTIVEN Manifest der Inhalts-Fingerabdruck (Altbestand), wird er
+    nachtraeglich aus den vorhandenen Folien gebildet - ohne neu zu rendern.
+    Sonst waere die naechste echte Aenderung nicht als solche erkennbar."""
+    man_path = os.path.join(web_dir, "content", "manifest.json")
+    try:
+        with open(man_path, encoding="utf-8") as f:
+            man = json.load(f)
+    except Exception:
+        return
+    if man.get("contentHash"):
+        return
+    base = os.path.dirname(os.path.realpath(man_path))
+    ch = hashlib.sha256()
+    try:
+        for s in man.get("baseLayer", {}).get("slides", []):
+            with open(os.path.join(base, s["file"]), "rb") as f:
+                ch.update(f.read())
+            ch.update(str(s.get("durationSeconds", "")).encode())
+    except Exception:
+        return
+    man["contentHash"] = ch.hexdigest()
+    tmp = man_path + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(man, f, indent=2, ensure_ascii=False)
+        os.replace(tmp, man_path)
+        log("Inhalts-Fingerabdruck fuer bestehenden Inhalt nachgetragen.")
+    except OSError:
+        try:
+            os.remove(tmp)
+        except OSError:
+            pass
+
+
 def _nocache(url):
     """Cache-Buster anhaengen. Ohne den kann ein Proxy/CDN dem Pi tagelang ein
     altes Google-Export ausliefern -> 'keine Aenderung', Bildschirm friert ein."""
@@ -323,6 +358,7 @@ def main():
     # 0) Selbst-Update der bin/-Skripte aus dem Repo. So erreicht ein 'git push'
     #    ALLE online Pis automatisch (ohne SSH/Netzzugang zum Pi).
     self_update(config_url, BIN_DIR, web_dir)
+    ensure_content_hash(web_dir)      # Altbestand nachtragen (einmalig je Pi)
 
     # 1) Config holen (mit Cache-Buster gegen raw-CDN)
     import time as _t
@@ -449,6 +485,19 @@ def main():
             p = os.path.join(staging, s["file"])
             if not (os.path.isfile(p) and os.path.getsize(p) > 0):
                 raise RuntimeError(f"Folie fehlt/leer: {s['file']}")
+
+        # Inhalts-Fingerabdruck: Hash ueber das, was der Betrachter WIRKLICH
+        # sieht - die sichtbaren Folienbilder in ihrer Reihenfolge samt Dauer.
+        # Unterscheidet eine echte Inhaltsaenderung von einem blossen Neu-Rendern
+        # (z. B. weil sich die Hash-Formel oder eine Einstellung geaendert hat).
+        ch = hashlib.sha256()
+        for s in slides:
+            with open(os.path.join(staging, s["file"]), "rb") as f:
+                ch.update(f.read())
+            ch.update(str(s.get("durationSeconds", "")).encode())
+        man["contentHash"] = ch.hexdigest()
+        with open(os.path.join(staging, "manifest.json"), "w", encoding="utf-8") as f:
+            json.dump(man, f, indent=2, ensure_ascii=False)
     except Exception as e:
         log(f"Rendern fehlgeschlagen ({e}). Verwerfe Staging, aktuelle Version bleibt aktiv.")
         _rmtree(staging)

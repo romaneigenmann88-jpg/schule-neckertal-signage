@@ -170,7 +170,8 @@ function liveStatusHtml(players, currentVersion, sollFolien) {
       : effSync > 2700 ? ` · ⚠️ kein Inhalts-Sync seit ${fmtAge(effSync)}`
       : ` · 🔄 Sync vor ${fmtAge(effSync)}`;
     // Wann wurde der Inhalt dieses Bildschirms zuletzt neu erzeugt?
-    const inhalt = p.version ? ` · 📄 Inhalt: ${fmtDate(p.version)}` : '';
+    const inhalt = p.contentChangedAt ? ` · 📄 Folien geändert: ${fmtDate(p.contentChangedAt)}`
+      : (p.version ? ` · 📄 aufbereitet: ${fmtDate(p.version)}` : '');
     // Zeigt der Bildschirm auch WIRKLICH so viele Folien wie die Gruppe (Soll)?
     // Weicht es ab, haengt dieser Bildschirm auf einem alten Stand.
     const sc = p.slideCount;
@@ -211,7 +212,7 @@ setInterval(refreshLiveStatus, 60 * 1000);
 // ============================================================
 //  Verlauf (Ereignis-Protokoll vom Worker)
 // ============================================================
-const EVENT_ICON = { inhalt: '📄', zurueck: '🔌', problem: '🔴', ok: '✅', neu: '🆕' };
+const EVENT_ICON = { inhalt: '📄', render: '🔁', zurueck: '🔌', problem: '🔴', ok: '✅', neu: '🆕' };
 
 async function loadEventLog() {
   const box = $('eventlog');
