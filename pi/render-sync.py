@@ -83,6 +83,11 @@ def log(msg):
 # beim naechsten Timer-Lauf (3 Min) wird sauber neu versucht.
 HARD_TIMEOUT = int(os.environ.get("SIGNAGE_SYNC_TIMEOUT", "240"))
 
+# Wie oft die PPTX zusaetzlich geprueft wird (erkennt Ein-/Ausblenden und
+# geaenderte "dauer:"-Notizen - beides ist im PDF NICHT sichtbar).
+# Kleiner = schneller erkannt, aber mehr Datenvolumen (PPTX ~3 MB).
+PPTX_CHECK_SEC = int(os.environ.get("SIGNAGE_PPTX_CHECK_SEC", "900"))   # 15 Min
+
 
 def _watchdog_timeout(signum, frame):
     log(f"NOTBREMSE: Lauf haengt seit {HARD_TIMEOUT}s -> Abbruch. "
@@ -120,6 +125,34 @@ def active_source_hash(web_dir):
 def _rmtree(path):
     import shutil
     shutil.rmtree(path, ignore_errors=True)
+
+
+def _nocache(url):
+    """Cache-Buster anhaengen. Ohne den kann ein Proxy/CDN dem Pi tagelang ein
+    altes Google-Export ausliefern -> 'keine Aenderung', Bildschirm friert ein."""
+    sep = "&" if "?" in url else "?"
+    return f"{url}{sep}_cb={int(time.time())}"
+
+
+def _pptx_state_path(data_dir):
+    return os.path.join(data_dir, ".pptx-state.json")
+
+
+def _load_pptx_state(data_dir):
+    try:
+        with open(_pptx_state_path(data_dir), encoding="utf-8") as f:
+            d = json.load(f)
+        return d.get("hash"), float(d.get("ts") or 0)
+    except Exception:
+        return None, 0.0
+
+
+def _save_pptx_state(data_dir, pptx_hash):
+    try:
+        with open(_pptx_state_path(data_dir), "w", encoding="utf-8") as f:
+            json.dump({"hash": pptx_hash, "ts": time.time()}, f)
+    except OSError:
+        pass
 
 
 def _kill_stuck_siblings():
@@ -306,12 +339,11 @@ def main():
         log("Keine googleSlidesId in der Config – nichts zu tun.")
         return 1
 
-    # 2) Nur die (kleine) PDF holen – sie genuegt fuer die Aenderungserkennung.
-    #    Google liefert keinen ETag/Last-Modified, daher MUSS man etwas laden;
-    #    die groessere PPTX (~2 MB) holen wir aber erst, wenn wirklich gerendert
-    #    wird -> spart auf "unveraenderten" Laeufen ~85 % Bandbreite.
+    # 2) PDF holen. WICHTIG: mit Cache-Buster! Ohne den liefert ein Schul-Proxy
+    #    (oder eine Google-Edge) tagelang ein altes PDF -> der Pi sieht "keine
+    #    Aenderung" und der Bildschirm bleibt auf altem Stand haengen.
     try:
-        pdf = fetch(GOOGLE.format(id=gid_src, fmt="pdf"))
+        pdf = fetch(_nocache(GOOGLE.format(id=gid_src, fmt="pdf")))
     except Exception as e:
         log(f"Google-PDF nicht erreichbar ({e}). Aktuelle Version bleibt aktiv.")
         return 1
@@ -319,24 +351,48 @@ def main():
         log("Google-PDF ungueltig (nicht oeffentlich freigegeben?). Aktuelle Version bleibt aktiv.")
         return 1
 
-    # 3) Aenderungserkennung: Hash aus PDF + Config
+    # 2b) Die PPTX bestimmt, welche Folien SICHTBAR sind (show="0") und wie lange
+    #     sie stehen (Notizen "dauer:"). Beides steht NICHT im PDF - ausgeblendete
+    #     Folien sind im PDF enthalten. Ohne die PPTX bliebe ein Ein-/Ausblenden
+    #     also unsichtbar und wuerde nie auf dem Bildschirm ankommen.
+    #     Kompromiss fuers Datenvolumen: die PPTX nicht bei JEDEM Lauf laden,
+    #     sondern hoechstens alle PPTX_CHECK_SEC (Standard 15 Min); dazwischen
+    #     gilt der zuletzt bekannte PPTX-Hash.
+    pptx = None
+    pptx_hash, pptx_ts = _load_pptx_state(data_dir)
+    if pptx_hash is None or (time.time() - pptx_ts) > PPTX_CHECK_SEC:
+        try:
+            pptx = fetch(_nocache(GOOGLE.format(id=gid_src, fmt="pptx")))
+            if not pptx.startswith(b"PK"):
+                raise RuntimeError("PPTX ungueltig")
+            pptx_hash = hashlib.sha256(pptx).hexdigest()
+            _save_pptx_state(data_dir, pptx_hash)
+        except Exception as e:
+            log(f"Google-PPTX nicht abrufbar ({e}) – nutze letzten bekannten Stand.")
+            pptx = None
+            if pptx_hash is None:
+                return 1
+
+    # 3) Aenderungserkennung: Hash aus PDF + Config + PPTX
     h = hashlib.sha256()
     h.update(pdf)
     h.update(config_raw)
+    h.update(pptx_hash.encode())
     source_hash = h.hexdigest()
     if source_hash == active_source_hash(web_dir):
-        log("Keine Aenderung (gleicher Inhalt) - keine PPTX geladen, nichts zu rendern.")
+        log("Keine Aenderung (gleicher Inhalt) - nichts zu rendern.")
         return 0
 
-    # Geaendert -> JETZT erst die PPTX holen (nur fuer Notizen/Dauer + versteckte).
-    try:
-        pptx = fetch(GOOGLE.format(id=gid_src, fmt="pptx"))
-    except Exception as e:
-        log(f"Google-PPTX nicht erreichbar ({e}). Aktuelle Version bleibt aktiv.")
-        return 1
-    if not pptx.startswith(b"PK"):
-        log("Google-PPTX ungueltig. Aktuelle Version bleibt aktiv.")
-        return 1
+    # Geaendert -> PPTX wird zum Rendern gebraucht (falls noch nicht geladen).
+    if pptx is None:
+        try:
+            pptx = fetch(_nocache(GOOGLE.format(id=gid_src, fmt="pptx")))
+        except Exception as e:
+            log(f"Google-PPTX nicht erreichbar ({e}). Aktuelle Version bleibt aktiv.")
+            return 1
+        if not pptx.startswith(b"PK"):
+            log("Google-PPTX ungueltig. Aktuelle Version bleibt aktiv.")
+            return 1
 
     version = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     log(f"Neuer Inhalt erkannt -> rendere Version {version} ...")
