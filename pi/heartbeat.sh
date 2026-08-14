@@ -51,8 +51,21 @@ fi
 LASTGET=$(journalctl -u signage-server.service -o short-unix --since "-30min" 2>/dev/null | grep -F "GET /content/manifest.json" | tail -1 | cut -d. -f1)
 case "$LASTGET" in ''|*[!0-9]*) DISPLAY_FRESH=-1 ;; *) DISPLAY_FRESH=$((NOW - LASTGET)) ;; esac
 
+# Sync-Gesundheit: Wann lief render-sync zuletzt ERFOLGREICH durch (egal ob es
+# etwas Neues gab)? Und klemmt gerade die Sperre? Damit sieht man in der Konsole
+# den Fall "Browser laeuft, aber der Inhalt kommt nicht mehr nach".
+LASTSYNC=$(journalctl -u signage-sync.service -o short-unix --since "-24h" 2>/dev/null \
+           | grep -E "Keine Aenderung|Aktiv geschaltet" | tail -1 | cut -d. -f1)
+case "$LASTSYNC" in ''|*[!0-9]*) SYNC_AGE=-1 ;; *) SYNC_AGE=$((NOW - LASTSYNC)) ;; esac
+LOCK="/opt/school-signage/data/.sync.lock"
+SYNC_STUCK=0
+if [ -f "$LOCK" ] && pgrep -f render-sync.py >/dev/null 2>&1; then
+  LOCKAGE=$(( NOW - $(stat -c %Y "$LOCK" 2>/dev/null || echo "$NOW") ))
+  [ "$LOCKAGE" -gt 600 ] && SYNC_STUCK=1
+fi
+
 if curl -4 -fsS -m 15 -X POST -H "Content-Type: application/json" \
-  -d "{\"playerId\":\"${PID}\",\"groupId\":\"${GID}\",\"version\":\"${VER}\",\"hostname\":\"$(hostname)\",\"ip\":\"${IP}\",\"conn\":\"${CONN}\",\"iface\":\"${IFACE}\",\"ssid\":\"${SSID}\",\"displayFreshSec\":${DISPLAY_FRESH}}" \
+  -d "{\"playerId\":\"${PID}\",\"groupId\":\"${GID}\",\"version\":\"${VER}\",\"hostname\":\"$(hostname)\",\"ip\":\"${IP}\",\"conn\":\"${CONN}\",\"iface\":\"${IFACE}\",\"ssid\":\"${SSID}\",\"displayFreshSec\":${DISPLAY_FRESH},\"syncAgeSec\":${SYNC_AGE},\"syncStuck\":${SYNC_STUCK}}" \
   "$HB" >/dev/null 2>&1; then
   echo "$NOW" > "$STAMP"     # nur bei Erfolg als gesendet merken
 fi

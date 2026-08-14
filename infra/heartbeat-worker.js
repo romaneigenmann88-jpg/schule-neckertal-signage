@@ -119,6 +119,8 @@ export default {
         iface: String(body.iface || '').slice(0, 20),  // eth0 / wlan0
         ssid: String(body.ssid || '').slice(0, 40),    // WLAN-Name (nur bei WLAN)
         displayFreshSec: Number.isFinite(+body.displayFreshSec) ? Math.trunc(+body.displayFreshSec) : null, // Sek. seit letzter Browser-Anfrage (Bild lebt?)
+        syncAgeSec: Number.isFinite(+body.syncAgeSec) ? Math.trunc(+body.syncAgeSec) : null,               // Sek. seit letztem erfolgreichen render-sync
+        syncStuck: body.syncStuck ? 1 : 0,                                                                  // 1 = Sync-Sperre haengt fest
         lastSeen: new Date().toISOString(),
       };
       // 7 Tage nach dem letzten Lebenszeichen automatisch vergessen

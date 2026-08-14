@@ -30,6 +30,7 @@ import json
 import os
 import subprocess
 import sys
+import signal
 import socket
 import time
 import urllib.request
@@ -61,9 +62,40 @@ MANAGED_FILES = {
     "tools/normalize_slides.py": ("normalize_slides.py", False),
 }
 
+# Dasselbe fuer die Player-Dateien in web/. Ohne das koennte eine Korrektur am
+# Player NUR per Neuinstallation auf die Pis - genau die Luecke, durch die der
+# Bild-Cache-Fehler lange unbemerkt blieb.
+MANAGED_WEB = {
+    "player/app.js":     "app.js",
+    "player/index.html": "index.html",
+    "player/style.css":  "style.css",
+}
+
 
 def log(msg):
     print(f"[render-sync] {datetime.now(timezone.utc).isoformat()} {msg}", flush=True)
+
+
+# Notbremse: Ein Lauf darf NIE ewig haengen. Passiert das trotzdem (haengendes
+# pdftoppm, halb offene Verbindung), blockiert er sonst mit seiner Dateisperre
+# alle folgenden Laeufe -> der Inhalt friert ein, bis jemand den Pi neu startet.
+# Genau dieser Fall ist in der Praxis aufgetreten. SIGALRM beendet den Lauf hart;
+# beim naechsten Timer-Lauf (3 Min) wird sauber neu versucht.
+HARD_TIMEOUT = int(os.environ.get("SIGNAGE_SYNC_TIMEOUT", "240"))
+
+
+def _watchdog_timeout(signum, frame):
+    log(f"NOTBREMSE: Lauf haengt seit {HARD_TIMEOUT}s -> Abbruch. "
+        "Aktuelle Anzeige bleibt aktiv, naechster Lauf versucht es erneut.")
+    os._exit(2)          # hart raus: Sperre wird vom OS freigegeben
+
+
+def arm_hard_timeout():
+    try:
+        signal.signal(signal.SIGALRM, _watchdog_timeout)
+        signal.alarm(HARD_TIMEOUT)
+    except (AttributeError, ValueError):
+        pass             # z. B. Windows/Nicht-Hauptthread: dann eben ohne
 
 
 def fetch(url, timeout=TIMEOUT):
@@ -90,6 +122,36 @@ def _rmtree(path):
     shutil.rmtree(path, ignore_errors=True)
 
 
+def _kill_stuck_siblings():
+    """Haengende render-sync/pdftoppm-Prozesse beenden - OHNE sich selbst.
+    (pkill -f 'render-sync.py' wuerde den eigenen Prozess mit treffen.)"""
+    me = os.getpid()
+    try:
+        out = subprocess.run(["ps", "-eo", "pid=,etimes=,args="],
+                             capture_output=True, text=True, timeout=15).stdout
+    except Exception:
+        return
+    for line in out.splitlines():
+        parts = line.split(None, 2)
+        if len(parts) < 3:
+            continue
+        try:
+            pid, etimes = int(parts[0]), int(parts[1])
+        except ValueError:
+            continue
+        args = parts[2]
+        if pid == me or pid == os.getppid():
+            continue
+        if etimes < 600:                       # nur wirklich alte Prozesse
+            continue
+        if "render-sync.py" in args or "pdftoppm" in args:
+            try:
+                os.kill(pid, signal.SIGKILL)
+                log(f"  haengenden Prozess beendet: pid={pid} ({etimes}s alt)")
+            except OSError:
+                pass
+
+
 def _repo_raw_base(config_url):
     """Aus der configUrl (.../main/groups/<gid>/config.json) die Repo-Raw-Basis
     (.../main) ableiten -> von dort holen wir die bin/-Skripte."""
@@ -110,17 +172,49 @@ def _valid_source(repo_path, data):
     elif repo_path.endswith(".sh"):
         if not data.lstrip().startswith(b"#!"):
             return False
+    elif repo_path.endswith((".js", ".css", ".html")):
+        # Player-Dateien: gegen abgeschnittene Downloads / Fehlerseiten schuetzen.
+        # (Ein kaputtes app.js wuerde die Anzeige auf ALLEN Pis lahmlegen.)
+        if len(data) < 200:
+            return False
+        try:
+            text = data.decode("utf-8")
+        except UnicodeDecodeError:
+            return False
+        if repo_path.endswith(".js") and text.lstrip().startswith("<"):
+            return False               # HTML-Fehlerseite statt JavaScript
+        if repo_path.endswith(".html") and "<" not in text[:200]:
+            return False
     return True
 
 
-def self_update(config_url, bin_dir):
+def _refresh_browser():
+    """Player-Dateien haben sich geaendert -> Browser-Cache leeren und Chromium
+    neu starten (der Autostart-Loop faengt ihn in ~3s wieder auf). Ohne das
+    laedt Chromium das ALTE app.js aus seinem Cache weiter."""
+    home = os.path.expanduser("~")
+    for p in (".cache/chromium",
+              ".config/chromium/Default/Cache",
+              ".config/chromium/Default/Code Cache"):
+        _rmtree(os.path.join(home, p))
+    if os.path.exists("/tmp/signage-kiosk-stop"):
+        return                       # Wartungsmodus: Finger weg
+    subprocess.run(["pkill", "chromium"], check=False)
+    log("Player aktualisiert -> Browser-Cache geleert und Chromium neu gestartet.")
+
+
+def self_update(config_url, bin_dir, web_dir=None):
     """Spiegelt die MANAGED_FILES aus dem Repo nach bin/ (token-frei, IPv4).
     Jeder Fehler ist unkritisch: das File bleibt dann unveraendert, die Anzeige
     laeuft weiter. Aktualisiertes render-sync.py greift beim naechsten Lauf."""
     base = _repo_raw_base(config_url)
     if not base:
         return
-    for repo_path, (name, execbit) in MANAGED_FILES.items():
+    targets = [(rp, os.path.join(bin_dir, name), ex) for rp, (name, ex) in MANAGED_FILES.items()]
+    web_changed = False
+    if web_dir:
+        targets += [(rp, os.path.join(web_dir, name), False) for rp, name in MANAGED_WEB.items()]
+    for repo_path, target, execbit in targets:
         url = base + "/" + repo_path
         bust = ("&" if "?" in url else "?") + "t=" + str(int(time.time()))
         try:
@@ -129,7 +223,7 @@ def self_update(config_url, bin_dir):
             continue                       # Netz kurz weg -> spaeter erneut
         if not _valid_source(repo_path, data):
             continue
-        target = os.path.join(bin_dir, name)
+        name = os.path.basename(target)
         try:
             with open(target, "rb") as f:
                 if f.read() == data:
@@ -144,6 +238,8 @@ def self_update(config_url, bin_dir):
                 os.chmod(tmp, 0o755)
             os.replace(tmp, target)        # atomar
             log(f"Selbst-Update: {name} aktualisiert ({len(data)} Bytes).")
+            if web_dir and os.path.dirname(target) == os.path.normpath(web_dir):
+                web_changed = True
         except OSError as e:
             log(f"Selbst-Update {name} fehlgeschlagen ({e}) - unveraendert.")
             try:
@@ -151,8 +247,12 @@ def self_update(config_url, bin_dir):
             except OSError:
                 pass
 
+    if web_changed:
+        _refresh_browser()
+
 
 def main():
+    arm_hard_timeout()          # Lauf kann sich nicht dauerhaft aufhaengen
     with open(CONFIG_PATH, encoding="utf-8") as f:
         cfg = json.load(f)
 
@@ -166,16 +266,30 @@ def main():
     os.makedirs(data_dir, exist_ok=True)
 
     # Dateisperre gegen Parallellaeufe (Timer + manuell)
-    lock_file = open(os.path.join(data_dir, ".sync.lock"), "w")
+    lock_path = os.path.join(data_dir, ".sync.lock")
+    lock_file = open(lock_path, "w")
     try:
         fcntl.flock(lock_file, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
-        log("Ein anderer Lauf ist aktiv – uebersprungen.")
+        # Sperre belegt. Normalfall: ein paralleler Lauf -> ueberspringen.
+        # Alarmfall: ein Lauf haengt seit Ewigkeiten und blockiert alles (der
+        # Inhalt friert dann ein). Das melden wir deutlich, statt es zu
+        # verschweigen - so taucht es im Log/Heartbeat auf.
+        try:
+            stuck = time.time() - os.path.getmtime(lock_path)
+        except OSError:
+            stuck = 0
+        if stuck > 600:
+            log(f"WARNUNG: Sperre seit {stuck/60:.0f} Min belegt – ein Lauf haengt fest "
+                "-> haengende Prozesse werden beendet, naechster Lauf raeumt auf.")
+            _kill_stuck_siblings()
+        else:
+            log("Ein anderer Lauf ist aktiv – uebersprungen.")
         return 0
 
     # 0) Selbst-Update der bin/-Skripte aus dem Repo. So erreicht ein 'git push'
     #    ALLE online Pis automatisch (ohne SSH/Netzzugang zum Pi).
-    self_update(config_url, BIN_DIR)
+    self_update(config_url, BIN_DIR, web_dir)
 
     # 1) Config holen (mit Cache-Buster gegen raw-CDN)
     import time as _t
@@ -247,12 +361,14 @@ def main():
             f.write(config_raw)
 
         # 4) PDF -> PNG (gleiche Parameter wie der GitHub-Workflow)
+        # timeout: haengendes pdftoppm darf den Lauf nicht blockieren
         subprocess.run(
             ["pdftoppm", "-png", "-scale-to-x", "1920", "-scale-to-y", "-1",
              pdf_path, os.path.join(slides_dir, "slide")],
-            check=True,
+            check=True, timeout=150,
         )
-        subprocess.run([sys.executable, os.path.join(BIN_DIR, "normalize_slides.py"), slides_dir], check=True)
+        subprocess.run([sys.executable, os.path.join(BIN_DIR, "normalize_slides.py"), slides_dir],
+                       check=True, timeout=60)
 
         # 5) manifest.json erzeugen (gleiche Logik wie GitHub)
         subprocess.run(
@@ -264,7 +380,7 @@ def main():
              "--version", version,
              "--slides-rel", "slides",
              "--source-hash", source_hash],
-            check=True,
+            check=True, timeout=120,
         )
 
         # 6) Vollstaendigkeit pruefen

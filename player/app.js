@@ -30,6 +30,17 @@ const IGNORE_SCHEDULE = params.get('ignoreSchedule') === '1';
 const CONTENT_BASE = 'content/';
 const MANIFEST_URL = CONTENT_BASE + 'manifest.json';
 
+// WICHTIG (Cache-Falle): Auf dem Pi heissen die Folien in JEDER Version gleich
+// (content/slides/slide-001.png), und der lokale Server sendet keine
+// Cache-Header. Chromium haelt ein altes PNG dann per Heuristik stundenlang
+// fuer gueltig -> neue Folien erscheinen erst nach einem Neustart (der den
+// Browser-Cache leert). Darum jede Bild-URL mit der Manifest-Version markieren:
+// neue Version = neue URL = garantiert frisches Bild.
+function slideUrl(slide) {
+  const v = (manifest && manifest.version) ? manifest.version : '';
+  return CONTENT_BASE + slide.file + (v ? '?v=' + encodeURIComponent(v) : '');
+}
+
 // Wie oft der Player die lokale manifest-Version prüft (der Sync-Agent
 // aktualisiert content/ im Hintergrund; bei neuer Version lädt der Player neu).
 const VERSION_CHECK_INTERVAL_MS = 60 * 1000;
@@ -202,7 +213,7 @@ function preloadSlides() {
     const img = new Image();
     img.onload  = () => resolve();
     img.onerror = () => { warn('Bild fehlt/defekt beim Vorladen:', s.file); resolve(); };
-    img.src = CONTENT_BASE + s.file;
+    img.src = slideUrl(s);
   }));
   return Promise.all(loaders).then(() => log('Folien vorgeladen.'));
 }
@@ -232,7 +243,7 @@ function showNextSlide() {
   showEl.onerror = () => {
     warn('Folie kann nicht angezeigt werden, wird übersprungen:', slide.file);
   };
-  showEl.src = CONTENT_BASE + slide.file;
+  showEl.src = slideUrl(slide);
   showEl.classList.add('active');
   hideEl.classList.remove('active');
   activeLayerIsA = !activeLayerIsA;
