@@ -25,6 +25,9 @@ case "$LASTHB" in ''|*[!0-9]*) LASTHB=0 ;; esac
 
 VER=$(read_json "$MAN" version)
 GID=$(read_json "$MAN" groupId)
+# Wie viele Folien zeigt DIESER Bildschirm gerade? (Soll-Vergleich in der Konsole)
+SLIDES=$(python3 -c "import json;print(len(json.load(open('$MAN')).get('baseLayer',{}).get('slides',[])))" 2>/dev/null || echo -1)
+case "$SLIDES" in ''|*[!0-9]*) SLIDES=-1 ;; esac
 
 # Netzwerk-Infos fuer die Admin-Konsole: aktive IP + Verbindungsart (LAN/WLAN).
 # Interface + IP aus der Default-Route (das, worueber der Pi wirklich rausgeht).
@@ -65,7 +68,7 @@ if [ -f "$LOCK" ] && pgrep -f render-sync.py >/dev/null 2>&1; then
 fi
 
 if curl -4 -fsS -m 15 -X POST -H "Content-Type: application/json" \
-  -d "{\"playerId\":\"${PID}\",\"groupId\":\"${GID}\",\"version\":\"${VER}\",\"hostname\":\"$(hostname)\",\"ip\":\"${IP}\",\"conn\":\"${CONN}\",\"iface\":\"${IFACE}\",\"ssid\":\"${SSID}\",\"displayFreshSec\":${DISPLAY_FRESH},\"syncAgeSec\":${SYNC_AGE},\"syncStuck\":${SYNC_STUCK}}" \
+  -d "{\"playerId\":\"${PID}\",\"groupId\":\"${GID}\",\"version\":\"${VER}\",\"hostname\":\"$(hostname)\",\"ip\":\"${IP}\",\"conn\":\"${CONN}\",\"iface\":\"${IFACE}\",\"ssid\":\"${SSID}\",\"displayFreshSec\":${DISPLAY_FRESH},\"syncAgeSec\":${SYNC_AGE},\"syncStuck\":${SYNC_STUCK},\"slideCount\":${SLIDES}}" \
   "$HB" >/dev/null 2>&1; then
   echo "$NOW" > "$STAMP"     # nur bei Erfolg als gesendet merken
 fi

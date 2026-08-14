@@ -115,7 +115,7 @@ function card(gid, m, players) {
       <div class="sub">${esc(gid)}</div>
       <div class="stats"><span>🖼 ${slides.length} Folien</span><span>🕒 ${fmtDate(m.version)}</span></div>
       <div class="sched">🗓 ${esc(scheduleSummary(m.schedule || {}))}</div>
-      ${liveStatusHtml(players, m.version)}
+      ${liveStatusHtml(players, m.version, slides.length)}
       ${warnHtml(m.warnings)}
       <div class="actions">
         <a class="btn edit" href="${esc(m.editUrl || '#')}" target="_blank" rel="noopener">✏️ Folien</a>
@@ -136,7 +136,7 @@ function warnHtml(ws) {
 }
 
 // Live-Status der real gemeldeten Bildschirme (aus dem Heartbeat)
-function liveStatusHtml(players, currentVersion) {
+function liveStatusHtml(players, currentVersion, sollFolien) {
   if (players === null) return '<div class="livestatus muted">⚪ Live-Status nicht erreichbar</div>';
   if (!players.length) return '<div class="livestatus muted">📺 Noch kein Bildschirm gemeldet</div>';
   const now = Date.now();
@@ -171,7 +171,14 @@ function liveStatusHtml(players, currentVersion) {
       : ` · 🔄 Sync vor ${fmtAge(effSync)}`;
     // Wann wurde der Inhalt dieses Bildschirms zuletzt neu erzeugt?
     const inhalt = p.version ? ` · 📄 Inhalt: ${fmtDate(p.version)}` : '';
-    return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${net}${disp}${sync}${inhalt}
+    // Zeigt der Bildschirm auch WIRKLICH so viele Folien wie die Gruppe (Soll)?
+    // Weicht es ab, haengt dieser Bildschirm auf einem alten Stand.
+    const sc = p.slideCount;
+    const folien = (typeof sc !== 'number' || sc < 0) ? ''
+      : (typeof sollFolien === 'number' && sollFolien > 0 && sc !== sollFolien)
+        ? ` · <span class="warn-slides">🖼 zeigt ${sc} statt ${sollFolien} Folien!</span>`
+        : ` · 🖼 ${sc} Folien`;
+    return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${net}${folien}${disp}${sync}${inhalt}
       <span class="cmds" title="Fernwartung – der Bildschirm fuehrt es in ca. 20 Sek. aus">
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-off">Kiosk verlassen</button>
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-on">Kiosk starten</button>
@@ -196,7 +203,7 @@ async function refreshLiveStatus() {
     const st = state[gid];
     st.players = beats[gid] || [];
     const ls = st.el.querySelector('.livestatus');
-    if (ls) ls.outerHTML = liveStatusHtml(st.players, st.m.version);
+    if (ls) ls.outerHTML = liveStatusHtml(st.players, st.m.version, ((st.m.baseLayer && st.m.baseLayer.slides) || []).length);
   }
 }
 setInterval(refreshLiveStatus, 60 * 1000);

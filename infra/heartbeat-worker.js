@@ -134,6 +134,7 @@ export default {
         displayFreshSec: Number.isFinite(+body.displayFreshSec) ? Math.trunc(+body.displayFreshSec) : null, // Sek. seit letzter Browser-Anfrage (Bild lebt?)
         syncAgeSec: Number.isFinite(+body.syncAgeSec) ? Math.trunc(+body.syncAgeSec) : null,               // Sek. seit letztem erfolgreichen render-sync
         syncStuck: body.syncStuck ? 1 : 0,                                                                  // 1 = Sync-Sperre haengt fest
+        slideCount: Number.isFinite(+body.slideCount) ? Math.trunc(+body.slideCount) : null,                // Folien, die dieser Bildschirm zeigt
         lastSeen: new Date().toISOString(),
       };
       // Ereignisse erkennen: Vergleich mit dem vorherigen Stand. Nur bei einer
