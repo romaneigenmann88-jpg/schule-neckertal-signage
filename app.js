@@ -174,9 +174,14 @@ function liveStatusHtml(players, currentVersion, sollFolien) {
       : (p.version ? ` · 📄 aufbereitet: ${fmtDate(p.version)}` : '');
     // Zeigt der Bildschirm auch WIRKLICH so viele Folien wie die Gruppe (Soll)?
     // Weicht es ab, haengt dieser Bildschirm auf einem alten Stand.
+    // ACHTUNG: Die Soll-Zahl stammt von GitHub Pages, das oft 20+ Min hinterher
+    // ist (der geplante Workflow laeuft unzuverlaessig). Der Pi rendert selbst
+    // und ist dann SCHNELLER als die Vergleichsquelle - das ist kein Fehler.
+    // Nur warnen, wenn der Pi-Inhalt AELTER als der Pages-Stand ist.
     const sc = p.slideCount;
+    const piAelter = p.version && currentVersion && Date.parse(p.version) < Date.parse(currentVersion);
     const folien = (typeof sc !== 'number' || sc < 0) ? ''
-      : (typeof sollFolien === 'number' && sollFolien > 0 && sc !== sollFolien)
+      : (piAelter && typeof sollFolien === 'number' && sollFolien > 0 && sc !== sollFolien)
         ? ` · <span class="warn-slides">🖼 zeigt ${sc} statt ${sollFolien} Folien!</span>`
         : ` · 🖼 ${sc} Folien`;
     return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${net}${folien}${disp}${sync}${inhalt}
