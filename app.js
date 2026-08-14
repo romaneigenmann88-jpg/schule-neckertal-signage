@@ -156,7 +156,14 @@ function liveStatusHtml(players, currentVersion) {
     const disp = (online && typeof df === 'number')
       ? (df < 0 || df > 300 ? ' · ⚠️ Bild steht?' : ' · 🖥 Bild aktiv')
       : '';
-    return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${net}${disp}
+    // Inhalts-Nachschub: laeuft render-sync noch? (Browser kann laufen, waehrend
+    // der Inhalt laengst nicht mehr nachgeliefert wird - genau der OZN-Fall.)
+    const sa = p.syncAgeSec;
+    const sync = !online ? ''
+      : p.syncStuck ? ' · 🔴 Sync haengt!'
+      : (typeof sa === 'number' && sa >= 0 && sa > 1800) ? ` · ⚠️ kein Sync seit ${Math.round(sa / 60)} Min`
+      : '';
+    return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${net}${disp}${sync}
       <span class="cmds" title="Fernwartung – der Bildschirm fuehrt es in ca. 20 Sek. aus">
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-off">Kiosk verlassen</button>
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-on">Kiosk starten</button>
