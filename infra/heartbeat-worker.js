@@ -102,6 +102,19 @@ export default {
     }
 
     // ----------------------------------------------------------
+    //  Ereignis-Protokoll (was ist wann passiert)
+    //  GET /events  -> { events: [ {ts, playerId, type, text}, ... ] }
+    //  Geschrieben wird NUR bei echten Aenderungen (siehe below) - das schont
+    //  das KV-Schreibbudget (Gratis-Tarif: 1000 Schreibvorgaenge/Tag).
+    // ----------------------------------------------------------
+    if (path === '/events') {
+      const v = await env.HEARTBEATS.get('log:events');
+      return new Response(v || '{"events":[]}', {
+        headers: { ...CORS, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // ----------------------------------------------------------
     //  Heartbeat (Status der Bildschirme)
     // ----------------------------------------------------------
     if (request.method === 'POST') {
@@ -123,8 +136,31 @@ export default {
         syncStuck: body.syncStuck ? 1 : 0,                                                                  // 1 = Sync-Sperre haengt fest
         lastSeen: new Date().toISOString(),
       };
+      // Ereignisse erkennen: Vergleich mit dem vorherigen Stand. Nur bei einer
+      // echten Aenderung wird protokolliert (spart KV-Schreibvorgaenge).
+      const prevRaw = await env.HEARTBEATS.get('p:' + id);
+      const prev = prevRaw ? JSON.parse(prevRaw) : null;
+      const events = [];
+      if (!prev) {
+        events.push({ type: 'neu', text: 'Bildschirm zum ersten Mal gemeldet' });
+      } else {
+        if (prev.version && rec.version && prev.version !== rec.version) {
+          events.push({ type: 'inhalt', text: `Neuer Inhalt aktiv (${rec.version})` });
+        }
+        const gap = (Date.parse(rec.lastSeen) - Date.parse(prev.lastSeen)) / 60000;
+        if (Number.isFinite(gap) && gap > 45) {
+          events.push({ type: 'zurueck', text: `Wieder online nach ${Math.round(gap)} Min Pause` });
+        }
+        if (rec.syncStuck && !prev.syncStuck) {
+          events.push({ type: 'problem', text: 'Inhalts-Sync haengt fest' });
+        }
+        if (!rec.syncStuck && prev.syncStuck) {
+          events.push({ type: 'ok', text: 'Inhalts-Sync laeuft wieder' });
+        }
+      }
       // 7 Tage nach dem letzten Lebenszeichen automatisch vergessen
       await env.HEARTBEATS.put('p:' + id, JSON.stringify(rec), { expirationTtl: 604800 });
+      if (events.length) await appendEvents(env, id, rec.groupId, events);
       return resp('ok', 200);
     }
 
@@ -138,6 +174,23 @@ export default {
     return json({ players });
   },
 };
+
+// Ereignisse an das Protokoll anhaengen (neueste zuerst, max. 200 Eintraege).
+// Ein KV-Schreibvorgang pro Aufruf - passiert nur, wenn wirklich etwas geschah.
+async function appendEvents(env, playerId, groupId, events) {
+  let log = { events: [] };
+  try {
+    const raw = await env.HEARTBEATS.get('log:events');
+    if (raw) log = JSON.parse(raw);
+    if (!Array.isArray(log.events)) log.events = [];
+  } catch { log = { events: [] }; }
+  const ts = new Date().toISOString();
+  for (const e of events) {
+    log.events.unshift({ ts, playerId, groupId: groupId || '', type: e.type, text: e.text });
+  }
+  log.events = log.events.slice(0, 200);
+  await env.HEARTBEATS.put('log:events', JSON.stringify(log));
+}
 
 function resp(text, status) {
   return new Response(text, { status, headers: CORS });
