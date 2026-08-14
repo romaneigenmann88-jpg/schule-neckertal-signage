@@ -137,3 +137,4 @@ main { max-width: 1100px; margin: 24px auto; padding: 0 16px; }
 .eventlog .ev:last-child { border-bottom: 0; }
 .eventlog .ev-t { color: #6b7280; font-variant-numeric: tabular-nums; margin-right: .4rem; }
 #eventlog-box summary { cursor: pointer; }
+.warn-slides { color: #b45309; font-weight: 600; }
