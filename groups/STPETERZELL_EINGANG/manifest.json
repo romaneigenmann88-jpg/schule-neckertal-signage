@@ -1,7 +1,7 @@
 {
   "groupId": "STPETERZELL_EINGANG",
   "title": "St. Peterzell - Eingang",
-  "version": "2026-08-18T11:14:16Z",
+  "version": "2026-08-18T11:45:23Z",
   "sourceHash": "57be4ceb127c9aeaa2f22bd5e4bba7823fa2fb19d35336072dd5e7177f2403df",
   "players": [],
   "editUrl": "https://docs.google.com/presentation/d/1kuY1Fun8uBMWQs4IZnuNqXlE1EhJGnCE4D4A78VuMis/edit",
@@ -44,42 +44,42 @@
     "type": "renderedPowerPoint",
     "slides": [
       {
-        "file": "slides/2026-08-18T11-14-16Z/slide-001.png",
+        "file": "slides/2026-08-18T11-45-23Z/slide-001.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 1
       },
       {
-        "file": "slides/2026-08-18T11-14-16Z/slide-002.png",
+        "file": "slides/2026-08-18T11-45-23Z/slide-002.png",
         "durationSeconds": 15,
         "sourceSlideNumber": 2
       },
       {
-        "file": "slides/2026-08-18T11-14-16Z/slide-003.png",
+        "file": "slides/2026-08-18T11-45-23Z/slide-003.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 3
       },
       {
-        "file": "slides/2026-08-18T11-14-16Z/slide-004.png",
+        "file": "slides/2026-08-18T11-45-23Z/slide-004.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 4
       },
       {
-        "file": "slides/2026-08-18T11-14-16Z/slide-005.png",
+        "file": "slides/2026-08-18T11-45-23Z/slide-005.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 5
       },
       {
-        "file": "slides/2026-08-18T11-14-16Z/slide-006.png",
+        "file": "slides/2026-08-18T11-45-23Z/slide-006.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 6
       },
       {
-        "file": "slides/2026-08-18T11-14-16Z/slide-007.png",
+        "file": "slides/2026-08-18T11-45-23Z/slide-007.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 7
       },
       {
-        "file": "slides/2026-08-18T11-14-16Z/slide-008.png",
+        "file": "slides/2026-08-18T11-45-23Z/slide-008.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 8
       }
