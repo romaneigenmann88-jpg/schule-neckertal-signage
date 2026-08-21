@@ -12,16 +12,7 @@ HB=$(read_json "$DEV" heartbeatUrl)
 PID=$(read_json "$DEV" playerId)
 [ -n "$HB" ] || exit 0
 
-# Schreib-Sparbremse fuers KV-Budget (Gratis-Tarif = 1000 KV-Writes/Tag): pro Pi
-# hoechstens ~alle 15 Min tatsaechlich senden. Der systemd-Timer darf oefter
-# feuern - wir senden aber nur, wenn genug Zeit vergangen ist. Gestempelt wird
-# NUR bei erfolgreichem Senden (sonst wird sofort erneut versucht).
-STAMP="${SIGNAGE_HB_STAMP:-/opt/school-signage/config/last-heartbeat-ts}"
-MIN_INTERVAL="${SIGNAGE_HB_MIN_INTERVAL:-840}"   # ~14 Min
 NOW=$(date +%s)
-LASTHB=$(cat "$STAMP" 2>/dev/null || echo 0)
-case "$LASTHB" in ''|*[!0-9]*) LASTHB=0 ;; esac
-[ $((NOW - LASTHB)) -lt "$MIN_INTERVAL" ] && exit 0
 
 VER=$(read_json "$MAN" version)
 GID=$(read_json "$MAN" groupId)
@@ -31,6 +22,32 @@ case "$SLIDES" in ''|*[!0-9]*) SLIDES=-1 ;; esac
 # Fingerabdruck der sichtbaren Folien: aendert sich NUR bei echter
 # Inhaltsaenderung (nicht bei blossem Neu-Rendern).
 CHASH=$(read_json "$MAN" contentHash)
+
+# Klemmt die Sync-Sperre? (fruehe Ermittlung, fliesst in die Meldeentscheidung)
+LOCK="/opt/school-signage/data/.sync.lock"
+SYNC_STUCK=0
+if [ -f "$LOCK" ] && pgrep -f render-sync.py >/dev/null 2>&1; then
+  LOCKAGE=$(( NOW - $(stat -c %Y "$LOCK" 2>/dev/null || echo "$NOW") ))
+  [ "$LOCKAGE" -gt 600 ] && SYNC_STUCK=1
+fi
+
+# ---- Schreib-Sparbremse fuers KV-Budget (Gratis-Tarif: 1000 Schreibvorgaenge
+# pro Tag, und JEDE Meldung ist einer). Zwei Faelle:
+#   * Hat sich etwas WICHTIGES geaendert (Inhalt, Folienzahl, Sync klemmt)?
+#     -> sofort melden, egal wie kurz die letzte Meldung her ist.
+#   * Sonst nur Routine -> hoechstens alle ~30 Min melden.
+# So bleiben echte Ereignisse taggenau sichtbar und das Budget reicht auch fuer
+# deutlich mehr Bildschirme.
+STAMP="${SIGNAGE_HB_STAMP:-/opt/school-signage/config/last-heartbeat-ts}"
+SUMFILE="${SIGNAGE_HB_SUMMARY:-/opt/school-signage/config/last-heartbeat-sum}"
+MIN_INTERVAL="${SIGNAGE_HB_MIN_INTERVAL:-1740}"   # ~29 Min Routine-Abstand
+SUMMARY="${VER}|${SLIDES}|${CHASH}|${SYNC_STUCK}"
+LASTSUM=$(cat "$SUMFILE" 2>/dev/null || echo "")
+LASTHB=$(cat "$STAMP" 2>/dev/null || echo 0)
+case "$LASTHB" in ''|*[!0-9]*) LASTHB=0 ;; esac
+if [ "$SUMMARY" = "$LASTSUM" ] && [ $((NOW - LASTHB)) -lt "$MIN_INTERVAL" ]; then
+  exit 0            # nichts Neues und Routine-Abstand noch nicht erreicht
+fi
 
 # Netzwerk-Infos fuer die Admin-Konsole: aktive IP + Verbindungsart (LAN/WLAN).
 # Interface + IP aus der Default-Route (das, worueber der Pi wirklich rausgeht).
@@ -63,15 +80,10 @@ case "$LASTGET" in ''|*[!0-9]*) DISPLAY_FRESH=-1 ;; *) DISPLAY_FRESH=$((NOW - LA
 LASTSYNC=$(journalctl -u signage-sync.service -o short-unix --since "-24h" 2>/dev/null \
            | grep -E "Keine Aenderung|Aktiv geschaltet" | tail -1 | cut -d. -f1)
 case "$LASTSYNC" in ''|*[!0-9]*) SYNC_AGE=-1 ;; *) SYNC_AGE=$((NOW - LASTSYNC)) ;; esac
-LOCK="/opt/school-signage/data/.sync.lock"
-SYNC_STUCK=0
-if [ -f "$LOCK" ] && pgrep -f render-sync.py >/dev/null 2>&1; then
-  LOCKAGE=$(( NOW - $(stat -c %Y "$LOCK" 2>/dev/null || echo "$NOW") ))
-  [ "$LOCKAGE" -gt 600 ] && SYNC_STUCK=1
-fi
 
 if curl -4 -fsS -m 15 -X POST -H "Content-Type: application/json" \
   -d "{\"playerId\":\"${PID}\",\"groupId\":\"${GID}\",\"version\":\"${VER}\",\"hostname\":\"$(hostname)\",\"ip\":\"${IP}\",\"conn\":\"${CONN}\",\"iface\":\"${IFACE}\",\"ssid\":\"${SSID}\",\"displayFreshSec\":${DISPLAY_FRESH},\"syncAgeSec\":${SYNC_AGE},\"syncStuck\":${SYNC_STUCK},\"slideCount\":${SLIDES},\"contentHash\":\"${CHASH}\"}" \
   "$HB" >/dev/null 2>&1; then
-  echo "$NOW" > "$STAMP"     # nur bei Erfolg als gesendet merken
+  echo "$NOW" > "$STAMP"          # nur bei Erfolg als gesendet merken
+  printf '%s' "$SUMMARY" > "$SUMFILE"
 fi

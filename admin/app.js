@@ -6,7 +6,7 @@
 const REPO = 'romaneigenmann88-jpg/schule-neckertal-signage';
 const BRANCH = 'main';
 const HEARTBEAT_URL = 'https://signage-heartbeat.schule-neckertal.workers.dev';
-const ONLINE_MS = 25 * 60 * 1000;   // online, wenn vor < 25 Min gesehen (Heartbeat alle 10 Min, toleriert 1 verpassten)
+const ONLINE_MS = 50 * 60 * 1000;   // online, wenn vor < 50 Min gesehen (Routine-Heartbeat alle ~30 Min, toleriert 1 verpassten)
 
 const DAYS = [
   ['monday', 'Montag'], ['tuesday', 'Dienstag'], ['wednesday', 'Mittwoch'],
@@ -212,7 +212,9 @@ async function refreshLiveStatus() {
     if (ls) ls.outerHTML = liveStatusHtml(st.players, st.m.version, ((st.m.baseLayer && st.m.baseLayer.slides) || []).length);
   }
 }
-setInterval(refreshLiveStatus, 60 * 1000);
+// Seltener abfragen und im Hintergrund pausieren: jede Abfrage kostet
+// Cloudflare-Kontingent, und der Routine-Heartbeat kommt ohnehin nur alle ~30 Min.
+setInterval(() => { if (!document.hidden) refreshLiveStatus(); }, 3 * 60 * 1000);
 
 // ============================================================
 //  Verlauf (Ereignis-Protokoll vom Worker)
@@ -241,7 +243,7 @@ async function loadEventLog() {
 const logBox = $('eventlog-box');
 if (logBox) logBox.addEventListener('toggle', () => { if (logBox.open) loadEventLog(); });
 loadEventLog();
-setInterval(() => { if (logBox && logBox.open) loadEventLog(); }, 60 * 1000);
+setInterval(() => { if (logBox && logBox.open && !document.hidden) loadEventLog(); }, 3 * 60 * 1000);
 
 // Fernwartung: Klick auf einen Befehls-Knopf -> Befehl im Worker ablegen.
 // Der Pi holt ihn beim naechsten Poll (~20s) und fuehrt ihn aus.
