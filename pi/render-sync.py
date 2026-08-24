@@ -88,6 +88,10 @@ HARD_TIMEOUT = int(os.environ.get("SIGNAGE_SYNC_TIMEOUT", "240"))
 # Kleiner = schneller erkannt, aber mehr Datenvolumen (PPTX ~3 MB).
 PPTX_CHECK_SEC = int(os.environ.get("SIGNAGE_PPTX_CHECK_SEC", "900"))   # 15 Min
 
+# Mindestabstand zwischen zwei Render-VERSUCHEN (Google-Export holen + rendern).
+# Der Timer feuert oefter; dazwischen wird nur self_update ausgefuehrt.
+RENDER_MIN_SEC = int(os.environ.get("SIGNAGE_RENDER_MIN_SEC", "600"))   # 10 Min
+
 
 def _watchdog_timeout(signum, frame):
     log(f"NOTBREMSE: Lauf haengt seit {HARD_TIMEOUT}s -> Abbruch. "
@@ -118,6 +122,15 @@ def active_source_hash(web_dir):
     try:
         with open(man, encoding="utf-8") as f:
             return json.load(f).get("sourceHash")
+    except Exception:
+        return None
+
+
+def active_content_hash(web_dir):
+    man = os.path.join(web_dir, "content", "manifest.json")
+    try:
+        with open(man, encoding="utf-8") as f:
+            return json.load(f).get("contentHash")
     except Exception:
         return None
 
@@ -356,9 +369,22 @@ def main():
         return 0
 
     # 0) Selbst-Update der bin/-Skripte aus dem Repo. So erreicht ein 'git push'
-    #    ALLE online Pis automatisch (ohne SSH/Netzzugang zum Pi).
+    #    ALLE online Pis automatisch (ohne SSH/Netzzugang zum Pi). Laeuft bei
+    #    JEDEM Durchgang (schnelle Code-Verteilung), unabhaengig vom Render-Takt.
     self_update(config_url, BIN_DIR, web_dir)
     ensure_content_hash(web_dir)      # Altbestand nachtragen (einmalig je Pi)
+
+    # Render-Bremse: Der systemd-Timer feuert alle ~3 Min, aber Google-Export
+    # holen + rendern kostet CPU/Bandbreite. Weil echte Inhaltsaenderungen selten
+    # sind, genuegt ein Render-VERSUCH alle RENDER_MIN_SEC (Standard 10 Min).
+    stampf = os.path.join(data_dir, ".last-render-attempt")
+    try:
+        last_try = os.path.getmtime(stampf)
+    except OSError:
+        last_try = 0
+    if time.time() - last_try < RENDER_MIN_SEC:
+        return 0
+    open(stampf, "w").close()          # Versuchszeitpunkt merken
 
     # 1) Config holen (mit Cache-Buster gegen raw-CDN)
     import time as _t
@@ -498,6 +524,17 @@ def main():
         man["contentHash"] = ch.hexdigest()
         with open(os.path.join(staging, "manifest.json"), "w", encoding="utf-8") as f:
             json.dump(man, f, indent=2, ensure_ascii=False)
+
+        # ENTSCHEIDENDES TOR gegen die Schreibflut: Google-Exporte sind
+        # byte-instabil (Zeitstempel im PDF) -> der source_hash aendert sich bei
+        # JEDEM Abruf, auch wenn inhaltlich nichts anders ist. Ohne diesen
+        # Vergleich wuerde der Pi endlos neue Versionen erzeugen -> jeder Heartbeat
+        # feuert sofort + ein Ereignis pro Re-Render -> KV-Limit gesprengt.
+        # Nur weiterschalten, wenn sich das SICHTBARE Bild wirklich geaendert hat.
+        if man["contentHash"] == active_content_hash(web_dir):
+            log("Neu gerendert, aber Bildinhalt unveraendert - keine neue Version.")
+            _rmtree(staging)
+            return 0
     except Exception as e:
         log(f"Rendern fehlgeschlagen ({e}). Verwerfe Staging, aktuelle Version bleibt aktiv.")
         _rmtree(staging)

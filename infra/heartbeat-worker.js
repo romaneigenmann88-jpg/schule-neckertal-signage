@@ -155,10 +155,9 @@ export default {
         if (hadHash && rec.contentHash && prev.contentHash !== rec.contentHash) {
           rec.contentChangedAt = rec.lastSeen;
           events.push({ type: 'inhalt', text: 'Folien geändert – neuer Inhalt wird angezeigt' });
-        } else if (prev.version && rec.version && prev.version !== rec.version) {
-          // Neu gerendert, aber Bildinhalt identisch -> nur leise vermerken.
-          events.push({ type: 'render', text: 'Neu aufbereitet (Inhalt unverändert)' });
         }
+        // Ein blosses Neu-Rendern bei gleichem Bildinhalt wird NICHT protokolliert
+        // (das erzeugte frueher eine Schreibflut ins KV-Log).
         const gap = (Date.parse(rec.lastSeen) - Date.parse(prev.lastSeen)) / 60000;
         if (Number.isFinite(gap) && gap > 45) {
           events.push({ type: 'zurueck', text: `Wieder online nach ${Math.round(gap)} Min Pause` });

@@ -41,7 +41,11 @@ fi
 STAMP="${SIGNAGE_HB_STAMP:-/opt/school-signage/config/last-heartbeat-ts}"
 SUMFILE="${SIGNAGE_HB_SUMMARY:-/opt/school-signage/config/last-heartbeat-sum}"
 MIN_INTERVAL="${SIGNAGE_HB_MIN_INTERVAL:-1740}"   # ~29 Min Routine-Abstand
-SUMMARY="${VER}|${SLIDES}|${CHASH}|${SYNC_STUCK}"
+# WICHTIG: die Render-Version (VER) NICHT einbeziehen - sie aendert sich bei
+# jedem Neu-Rendern, auch ohne echte Inhaltsaenderung, und wuerde sonst einen
+# Sofort-Versand ausloesen (das war die Ursache der KV-Schreibflut). Der
+# contentHash (CHASH) beschreibt den tatsaechlichen Bildinhalt.
+SUMMARY="${CHASH}|${SLIDES}|${SYNC_STUCK}"
 LASTSUM=$(cat "$SUMFILE" 2>/dev/null || echo "")
 LASTHB=$(cat "$STAMP" 2>/dev/null || echo 0)
 case "$LASTHB" in ''|*[!0-9]*) LASTHB=0 ;; esac
