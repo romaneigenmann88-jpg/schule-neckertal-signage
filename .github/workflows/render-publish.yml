@@ -55,9 +55,23 @@ jobs:
             [ -n "$gid_src" ] || { echo "Ueberspringe $gid (keine googleSlidesId)"; continue; }
             echo "::group::Gruppe $gid"
             work=$(mktemp -d)
-            echo "Hole Google-Export (PDF + PPTX) ..."
-            curl -sL -o "$work/g.pdf"  "https://docs.google.com/presentation/d/$gid_src/export/pdf"
-            curl -sL -o "$work/g.pptx" "https://docs.google.com/presentation/d/$gid_src/export/pptx"
+            echo "Hole Google-Export (PDF + PPTX, mit Validierung + Retry) ..."
+            # Google liefert gelegentlich eine HTML-Fehlerseite statt der Datei.
+            # Frueher erstickte pdftoppm daran und der GANZE Lauf schlug fehl.
+            # Jetzt: bis zu 3 Versuche, und nur weiterrechnen, wenn es wirklich
+            # eine PDF (%PDF) und eine PPTX (PK) ist - sonst Gruppe ueberspringen.
+            ok=false
+            for attempt in 1 2 3; do
+              curl -sL --max-time 60 -o "$work/g.pdf"  "https://docs.google.com/presentation/d/$gid_src/export/pdf?cb=$RANDOM$RANDOM"  || true
+              curl -sL --max-time 60 -o "$work/g.pptx" "https://docs.google.com/presentation/d/$gid_src/export/pptx?cb=$RANDOM$RANDOM" || true
+              if [ "$(head -c4 "$work/g.pdf")" = "%PDF" ] && [ "$(head -c2 "$work/g.pptx")" = "PK" ]; then ok=true; break; fi
+              echo "  Versuch $attempt: ungueltiger Export (Google-Schluckauf) - erneut in 5s ..."
+              sleep 5
+            done
+            if [ "$ok" != true ]; then
+              echo "::warning::Gruppe $gid: Google-Export nach 3 Versuchen ungueltig - diese Runde uebersprungen (Bildschirme rendern lokal weiter; naechster Lauf holt es nach)."
+              rm -rf "$work"; echo "::endgroup::"; continue
+            fi
             slidesdir="publish/groups/$gid/slides/$SAFEVER"
             mkdir -p "$slidesdir"
             pdftoppm -png -scale-to-x 1920 -scale-to-y -1 "$work/g.pdf" "$slidesdir/slide"
