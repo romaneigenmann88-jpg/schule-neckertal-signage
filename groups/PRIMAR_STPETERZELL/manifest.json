@@ -1,8 +1,8 @@
 {
   "groupId": "PRIMAR_STPETERZELL",
   "title": "Primarschule St. Peterzell",
-  "version": "2026-08-25T09:40:57Z",
-  "sourceHash": "f3002568f71d628dc75b3843845f338f5d1ebc9df2781b3795cedae2ea61955b",
+  "version": "2026-08-25T15:53:11Z",
+  "sourceHash": "5e4d3eb49725ed09e4ed24e09a3d0fa97820e07216c1ffb97b663b493ea5c286",
   "players": [],
   "editUrl": "https://docs.google.com/presentation/d/1x5QOSZ25ToPey4bUF3S9X-VVjIIoQ7BAmAGDqXguBsM/edit",
   "defaultSlideDurationSeconds": 12,
@@ -44,44 +44,44 @@
     "type": "renderedPowerPoint",
     "slides": [
       {
-        "file": "slides/2026-08-25T09-40-57Z/slide-001.png",
+        "file": "slides/2026-08-25T15-53-11Z/slide-001.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 1
       },
       {
-        "file": "slides/2026-08-25T09-40-57Z/slide-002.png",
+        "file": "slides/2026-08-25T15-53-11Z/slide-002.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 2
       },
       {
-        "file": "slides/2026-08-25T09-40-57Z/slide-003.png",
+        "file": "slides/2026-08-25T15-53-11Z/slide-003.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 3
       },
       {
-        "file": "slides/2026-08-25T09-40-57Z/slide-005.png",
+        "file": "slides/2026-08-25T15-53-11Z/slide-004.png",
+        "durationSeconds": 7,
+        "sourceSlideNumber": 4
+      },
+      {
+        "file": "slides/2026-08-25T15-53-11Z/slide-005.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 5
       },
       {
-        "file": "slides/2026-08-25T09-40-57Z/slide-006.png",
+        "file": "slides/2026-08-25T15-53-11Z/slide-006.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 6
       },
       {
-        "file": "slides/2026-08-25T09-40-57Z/slide-007.png",
+        "file": "slides/2026-08-25T15-53-11Z/slide-007.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 7
       },
       {
-        "file": "slides/2026-08-25T09-40-57Z/slide-008.png",
+        "file": "slides/2026-08-25T15-53-11Z/slide-008.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 8
-      },
-      {
-        "file": "slides/2026-08-25T09-40-57Z/slide-009.png",
-        "durationSeconds": 7,
-        "sourceSlideNumber": 9
       }
     ]
   },
