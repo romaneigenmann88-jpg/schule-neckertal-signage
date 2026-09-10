@@ -197,19 +197,26 @@ def main():
                 except OSError:
                     pass
 
-    # 5) playlist.json (nur fertige Dateien, alphabetisch)
-    playlist = [
-        {"name": v["name"], "url": "content/videos/" + v["name"]}
-        for v in sorted(remote, key=lambda x: x["name"])
-        if os.path.isfile(os.path.join(videos_dir, v["name"]))
-    ]
-    pl = os.path.join(content_dir, "playlist.json")
-    tmp = pl + ".tmp"
-    with open(tmp, "w", encoding="utf-8") as f:
-        json.dump(playlist, f, indent=2, ensure_ascii=False)
-    os.replace(tmp, pl)
-    log(f"Fertig: {len(playlist)} Video(s) spielbereit.")
+    # 5) Playlisten schreiben (nur fertige Dateien, alphabetisch)
+    ready = [v["name"] for v in sorted(remote, key=lambda x: x["name"])
+             if os.path.isfile(os.path.join(videos_dir, v["name"]))]
+    # playlist.m3u fuer mpv: ein ABSOLUTER Pfad je Zeile -> Dateinamen mit
+    # Leerzeichen/Sonderzeichen funktionieren zuverlaessig (kein Shell-Splitting).
+    m3u = "#EXTM3U\n" + "".join(os.path.join(videos_dir, n) + "\n" for n in ready)
+    _write(os.path.join(content_dir, "playlist.m3u"), m3u)
+    # playlist.json zusaetzlich (fuer evtl. Web-Nutzung/Diagnose).
+    playlist = [{"name": n, "url": "content/videos/" + n} for n in ready]
+    _write(os.path.join(content_dir, "playlist.json"),
+           json.dumps(playlist, indent=2, ensure_ascii=False))
+    log(f"Fertig: {len(ready)} Video(s) spielbereit.")
     return 0
+
+
+def _write(path, text):
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        f.write(text)
+    os.replace(tmp, path)
 
 
 def _copy(src, out):
