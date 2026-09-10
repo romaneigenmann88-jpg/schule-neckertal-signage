@@ -63,7 +63,10 @@ WD="$(dirname "$0")/display-watchdog.sh"
 # werden aufgeloest, aber keine Route) -> die Namensaufloesung laeuft sonst in
 # einen 5s-Timeout und der Worker-Zeitplan kaeme NIE an (Fallback auf alte Zeit).
 HB=$(python3 -c "import json;print(json.load(open('$DEV')).get('heartbeatUrl',''))" 2>/dev/null || echo "")
-GID=$(python3 -c "import json;print(json.load(open('$MAN')).get('groupId',''))" 2>/dev/null || echo "")
+# Gruppe aus device.json (funktioniert in BEIDEN Modi). Der Video-Schaukasten hat
+# keine manifest.json - frueher blieb GID darum leer und der Zeitplan griff nicht.
+GID=$(python3 -c "import json;print(json.load(open('$DEV')).get('groupId',''))" 2>/dev/null || echo "")
+[ -n "$GID" ] || GID=$(python3 -c "import json;print(json.load(open('$MAN')).get('groupId',''))" 2>/dev/null || echo "")
 CACHE="${SIGNAGE_SETTINGS_CACHE:-/opt/school-signage/config/last-settings.json}"
 SETTINGS=""
 if [ -n "$HB" ] && [ -n "$GID" ]; then
