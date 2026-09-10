@@ -25,6 +25,9 @@ OUTPUT="${SIGNAGE_OUTPUT:-HDMI-A-1}"
 # Welche Gruppe dieser Bildschirm zeigt. Der Pi rendert die Google-Folien selbst
 # (token-frei); er braucht nur die oeffentliche Gruppen-Config.
 GROUP_ID="${GROUP_ID:-OZN_EINGANG}"
+# Inhaltsart: "slides" (Google-Folien, Standard) oder "video" (Schaukasten, MP4s
+# aus dem R2-Bucket ueber den Worker). Steuert Player + Sync-Logik.
+CONTENT_MODE="${CONTENT_MODE:-slides}"
 REPO_RAW="${REPO_RAW:-https://raw.githubusercontent.com/romaneigenmann88-jpg/schule-neckertal-signage/main}"
 CONFIG_URL="${CONFIG_URL:-$REPO_RAW/groups/$GROUP_ID/config.json}"
 HEARTBEAT_URL="${HEARTBEAT_URL:-https://signage-heartbeat.schule-neckertal.workers.dev}"
@@ -73,13 +76,20 @@ sudo chown -R "$SIGNAGE_USER:$SIGNAGE_USER" "$INSTALL_DIR"
 mkdir -p "$INSTALL_DIR"/web "$INSTALL_DIR"/data "$INSTALL_DIR"/config "$INSTALL_DIR"/logs "$INSTALL_DIR"/bin
 
 # ---------- 3. App-Dateien (web/) ----------
-echo "[3/10] App-Dateien kopieren ..."
-cp "$REPO_ROOT/player/index.html" "$REPO_ROOT/player/app.js" "$REPO_ROOT/player/style.css" "$INSTALL_DIR/web/"
+echo "[3/10] App-Dateien kopieren (Modus: $CONTENT_MODE) ..."
+if [ "$CONTENT_MODE" = "video" ]; then
+  cp "$REPO_ROOT/player-video/index.html" "$INSTALL_DIR/web/index.html"
+else
+  cp "$REPO_ROOT/player/index.html" "$REPO_ROOT/player/app.js" "$REPO_ROOT/player/style.css" "$INSTALL_DIR/web/"
+fi
 
 # ---------- 4. Sync-Agent (rendert die Google-Folien lokal, token-frei) ----------
 echo "[4/10] Render-Sync-Agent ..."
 cp "$REPO_ROOT/pi/render-sync.py" "$INSTALL_DIR/bin/render-sync.py"
 chmod +x "$INSTALL_DIR/bin/render-sync.py"
+# Video-Sync (Schaukasten): render-sync ruft es im Modus "video" auf.
+cp "$REPO_ROOT/pi/video-sync.py" "$INSTALL_DIR/bin/video-sync.py"
+chmod +x "$INSTALL_DIR/bin/video-sync.py"
 # Wiederverwendete Render-Bausteine (gleiche Logik wie der GitHub-Workflow)
 cp "$REPO_ROOT/tools/build_manifest.py" "$INSTALL_DIR/bin/build_manifest.py"
 cp "$REPO_ROOT/tools/normalize_slides.py" "$INSTALL_DIR/bin/normalize_slides.py"
@@ -100,6 +110,7 @@ cat > "$INSTALL_DIR/config/device.json" <<JSON
 {
   "playerId": "$PLAYER_ID",
   "groupId": "$GROUP_ID",
+  "mode": "$CONTENT_MODE",
   "configUrl": "$CONFIG_URL",
   "heartbeatUrl": "$HEARTBEAT_URL",
   "dataDir": "$INSTALL_DIR/data",
@@ -377,8 +388,9 @@ sudo systemctl restart signage-server.service   # restart, damit Unit-Aenderunge
 # Initiales Rendern ZUERST (vor dem Timer, um Parallelläufe zu vermeiden)
 python3 "$INSTALL_DIR/bin/render-sync.py" || echo "    Initiales Rendern (noch) nicht erfolgreich."
 
-# Fallback nur, wenn noch kein Inhalt aktiv ist (z. B. offline bei Erstinstallation)
-if [ ! -e "$INSTALL_DIR/web/content" ]; then
+# Fallback nur im Folien-Modus, wenn noch kein Inhalt aktiv ist (z. B. offline bei
+# Erstinstallation). Im Video-Modus legt video-sync web/content selbst an.
+if [ "$CONTENT_MODE" != "video" ] && [ ! -e "$INSTALL_DIR/web/content" ]; then
   echo "    Kein Inhalt vom Server – Fallback-Inhalt aus Repo (offline-tauglich)."
   mkdir -p "$INSTALL_DIR/data/seed/slides"
   cp "$REPO_ROOT/player/content/manifest.json" "$INSTALL_DIR/data/seed/manifest.json"

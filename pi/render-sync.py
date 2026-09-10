@@ -54,6 +54,7 @@ GOOGLE = "https://docs.google.com/presentation/d/{id}/export/{fmt}"
 # seinem naechsten Lauf nach -> ALLE online Pis reparieren sich ohne SSH selbst.
 MANAGED_FILES = {
     "pi/render-sync.py":         ("render-sync.py", True),
+    "pi/video-sync.py":          ("video-sync.py", True),
     "pi/display-schedule.sh":    ("display-schedule.sh", True),
     "pi/display-watchdog.sh":    ("display-watchdog.sh", True),
     "pi/heartbeat.sh":           ("heartbeat.sh", True),
@@ -62,13 +63,17 @@ MANAGED_FILES = {
     "tools/normalize_slides.py": ("normalize_slides.py", False),
 }
 
-# Dasselbe fuer die Player-Dateien in web/. Ohne das koennte eine Korrektur am
-# Player NUR per Neuinstallation auf die Pis - genau die Luecke, durch die der
-# Bild-Cache-Fehler lange unbemerkt blieb.
-MANAGED_WEB = {
+# Dasselbe fuer die Player-Dateien in web/ - MODUS-ABHAENGIG. Ohne das koennte
+# eine Player-Korrektur nur per Neuinstallation auf die Pis. WICHTIG: ein
+# Video-Pi darf NICHT den Folien-Player nach web/index.html bekommen (und
+# umgekehrt) - sonst waere die falsche Anzeige aktiv.
+MANAGED_WEB_SLIDES = {
     "player/app.js":     "app.js",
     "player/index.html": "index.html",
     "player/style.css":  "style.css",
+}
+MANAGED_WEB_VIDEO = {
+    "player-video/index.html": "index.html",
 }
 
 
@@ -284,17 +289,19 @@ def _refresh_browser():
     log("Player aktualisiert -> Browser-Cache geleert und Chromium neu gestartet.")
 
 
-def self_update(config_url, bin_dir, web_dir=None):
+def self_update(config_url, bin_dir, web_dir=None, mode="slides"):
     """Spiegelt die MANAGED_FILES aus dem Repo nach bin/ (token-frei, IPv4).
     Jeder Fehler ist unkritisch: das File bleibt dann unveraendert, die Anzeige
-    laeuft weiter. Aktualisiertes render-sync.py greift beim naechsten Lauf."""
+    laeuft weiter. Aktualisiertes render-sync.py greift beim naechsten Lauf.
+    Die web/-Dateien haengen vom Modus ab (Folien- vs Video-Player)."""
     base = _repo_raw_base(config_url)
     if not base:
         return
+    managed_web = MANAGED_WEB_VIDEO if mode == "video" else MANAGED_WEB_SLIDES
     targets = [(rp, os.path.join(bin_dir, name), ex) for rp, (name, ex) in MANAGED_FILES.items()]
     web_changed = False
     if web_dir:
-        targets += [(rp, os.path.join(web_dir, name), False) for rp, name in MANAGED_WEB.items()]
+        targets += [(rp, os.path.join(web_dir, name), False) for rp, name in managed_web.items()]
     for repo_path, target, execbit in targets:
         url = base + "/" + repo_path
         bust = ("&" if "?" in url else "?") + "t=" + str(int(time.time()))
@@ -341,6 +348,7 @@ def main():
     if not config_url:
         log("configUrl fehlt in device.json – nichts zu tun.")
         return 1
+    mode = cfg.get("mode", "slides")     # "slides" (Google-Folien) oder "video" (Schaukasten)
     data_dir = cfg.get("dataDir", "/opt/school-signage/data")
     web_dir = cfg.get("webDir", "/opt/school-signage/web")
     keep = int(cfg.get("keepVersions", 3))
@@ -371,7 +379,18 @@ def main():
     # 0) Selbst-Update der bin/-Skripte aus dem Repo. So erreicht ein 'git push'
     #    ALLE online Pis automatisch (ohne SSH/Netzzugang zum Pi). Laeuft bei
     #    JEDEM Durchgang (schnelle Code-Verteilung), unabhaengig vom Render-Takt.
-    self_update(config_url, BIN_DIR, web_dir)
+    self_update(config_url, BIN_DIR, web_dir, mode)
+
+    # Video-Schaukasten: kein Google-Rendern. Nach dem Selbst-Update den
+    # Video-Sync ausfuehren (laedt Bucket-Videos lokal, pflegt playlist.json).
+    if mode == "video":
+        vs = os.path.join(BIN_DIR, "video-sync.py")
+        try:
+            subprocess.run([sys.executable, vs], check=False, timeout=HARD_TIMEOUT - 20)
+        except Exception as e:
+            log(f"Video-Sync-Fehler ({e}).")
+        return 0
+
     ensure_content_hash(web_dir)      # Altbestand nachtragen (einmalig je Pi)
 
     # Render-Bremse: Der systemd-Timer feuert alle ~3 Min, aber Google-Export
