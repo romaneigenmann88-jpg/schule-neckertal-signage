@@ -65,8 +65,11 @@ export default {
       // UPLOAD_PW; per 'wrangler secret put UPLOAD_PW' setzen). GET bleibt offen
       // (der Pi muss die Videos token-frei laden koennen).
       if (request.method === 'PUT' || request.method === 'DELETE') {
-        if (!env.UPLOAD_PW || request.headers.get('x-upload-password') !== env.UPLOAD_PW) {
-          return resp('Passwort falsch oder nicht gesetzt', 401);
+        // Passwort ist OPTIONAL: nur pruefen, wenn ein Secret UPLOAD_PW gesetzt
+        // ist. Ohne Secret sind Upload/Loeschen OFFEN (bewusste Wahl). Spaeter
+        // absicherbar mit: wrangler secret put UPLOAD_PW
+        if (env.UPLOAD_PW && request.headers.get('x-upload-password') !== env.UPLOAD_PW) {
+          return resp('Passwort falsch', 401);
         }
         const safe = key.replace(/[\\/]/g, '').replace(/^\.+/, '');
         if (!safe) return resp('ungueltiger Name', 400);
@@ -307,8 +310,9 @@ function uploaderPage() {
   .hint{color:#94a3b8;font-size:.9rem}
 </style></head><body>
 <h1>🎬 Schaukasten – Videos</h1>
-<p class="hint">Passwort eingeben, dann Videos hochladen. Sie erscheinen in wenigen Minuten am Bildschirm (grosse Videos werden automatisch auf 720p gebracht). Reihenfolge nach Dateiname (z.&nbsp;B. 01-…, 02-…).</p>
-<label>Passwort<br><input type="password" id="pw" placeholder="Upload-Passwort"></label>
+<p class="hint">Videos hochladen – sie erscheinen in wenigen Minuten am Bildschirm (grosse Videos werden automatisch auf 720p gebracht). Reihenfolge nach Dateiname (z.&nbsp;B. 01-…, 02-…).</p>
+<details><summary class="hint">Passwort (nur falls eingerichtet)</summary>
+<input type="password" id="pw" placeholder="leer lassen, wenn kein Passwort gesetzt"></details>
 <div id="drop">Video hierher ziehen &nbsp;·&nbsp; oder klicken zum Auswählen</div>
 <input type="file" id="file" accept="video/*" multiple hidden>
 <div id="status"></div>
