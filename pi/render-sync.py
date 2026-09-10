@@ -55,6 +55,7 @@ GOOGLE = "https://docs.google.com/presentation/d/{id}/export/{fmt}"
 MANAGED_FILES = {
     "pi/render-sync.py":         ("render-sync.py", True),
     "pi/video-sync.py":          ("video-sync.py", True),
+    "pi/video-kiosk.sh":         ("video-kiosk.sh", True),
     "pi/display-schedule.sh":    ("display-schedule.sh", True),
     "pi/display-watchdog.sh":    ("display-watchdog.sh", True),
     "pi/heartbeat.sh":           ("heartbeat.sh", True),
@@ -384,11 +385,9 @@ def main():
     # Video-Schaukasten: kein Google-Rendern. Nach dem Selbst-Update den
     # Video-Sync ausfuehren (laedt Bucket-Videos lokal, pflegt playlist.json).
     if mode == "video":
-        vs = os.path.join(BIN_DIR, "video-sync.py")
-        try:
-            subprocess.run([sys.executable, vs], check=False, timeout=HARD_TIMEOUT - 20)
-        except Exception as e:
-            log(f"Video-Sync-Fehler ({e}).")
+        # Video-Schaukasten: kein Google-Rendern. Der Inhalt (Download + 720p-
+        # Transkodierung) laeuft ueber den eigenen Dienst signage-video
+        # (video-sync, ohne Zeitlimit). Hier ist nach dem Selbst-Update Schluss.
         return 0
 
     ensure_content_hash(web_dir)      # Altbestand nachtragen (einmalig je Pi)

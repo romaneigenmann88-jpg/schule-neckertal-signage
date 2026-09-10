@@ -55,9 +55,9 @@ fi
 echo "[1/10] Pakete installieren ..."
 sudo apt-get update -qq
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  chromium python3 python3-pip grim wlr-randr wlopm v4l-utils fonts-comfortaa poppler-utils >/dev/null 2>&1 || \
+  chromium python3 python3-pip grim wlr-randr wlopm v4l-utils fonts-comfortaa poppler-utils mpv ffmpeg >/dev/null 2>&1 || \
   sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \
-  chromium-browser python3 python3-pip grim wlr-randr wlopm v4l-utils fonts-comfortaa poppler-utils >/dev/null
+  chromium-browser python3 python3-pip grim wlr-randr wlopm v4l-utils fonts-comfortaa poppler-utils mpv ffmpeg >/dev/null
 # python-pptx (fuer das Manifest): in Trixie NICHT als apt-Paket -> systemweit
 # per pip (extern verwaltet). Sudo, damit der Dienst-Benutzer es importieren kann.
 sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3-pptx >/dev/null 2>&1 || \
@@ -90,6 +90,8 @@ chmod +x "$INSTALL_DIR/bin/render-sync.py"
 # Video-Sync (Schaukasten): render-sync ruft es im Modus "video" auf.
 cp "$REPO_ROOT/pi/video-sync.py" "$INSTALL_DIR/bin/video-sync.py"
 chmod +x "$INSTALL_DIR/bin/video-sync.py"
+cp "$REPO_ROOT/pi/video-kiosk.sh" "$INSTALL_DIR/bin/video-kiosk.sh"
+chmod +x "$INSTALL_DIR/bin/video-kiosk.sh"
 # Wiederverwendete Render-Bausteine (gleiche Logik wie der GitHub-Workflow)
 cp "$REPO_ROOT/tools/build_manifest.py" "$INSTALL_DIR/bin/build_manifest.py"
 cp "$REPO_ROOT/tools/normalize_slides.py" "$INSTALL_DIR/bin/normalize_slides.py"
@@ -157,6 +159,34 @@ Description=Schule Neckertal Signage - Inhalts-Sync alle 5 Minuten
 
 [Timer]
 OnBootSec=1min
+OnUnitActiveSec=3min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+UNIT
+
+# Video-Sync (nur Schaukasten): eigener Dienst, weil die 720p-Transkodierung
+# lange dauern darf -> KEIN Start-Timeout (sonst wuerde systemd einen laengeren
+# Transcode killen). render-sync macht im Video-Modus nur das Selbst-Update.
+sudo tee /etc/systemd/system/signage-video.service >/dev/null <<UNIT
+[Unit]
+Description=Schule Neckertal Signage - Video-Sync (Download + 720p)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=$SIGNAGE_USER
+TimeoutStartSec=infinity
+ExecStart=/usr/bin/python3 $INSTALL_DIR/bin/video-sync.py
+UNIT
+sudo tee /etc/systemd/system/signage-video.timer >/dev/null <<'UNIT'
+[Unit]
+Description=Schule Neckertal Signage - Video-Sync alle 3 Minuten
+
+[Timer]
+OnBootSec=30s
 OnUnitActiveSec=3min
 Persistent=true
 
@@ -261,7 +291,17 @@ sudo tee /etc/chromium/policies/managed/signage.json >/dev/null <<'JSON'
 JSON
 
 mkdir -p "$USER_HOME/.config/labwc"
-cat > "$USER_HOME/.config/labwc/autostart" <<AUTO
+if [ "$CONTENT_MODE" = "video" ]; then
+  # Video-Schaukasten: mpv-Kiosk (Hardware-Decode) statt Chromium.
+  cat > "$USER_HOME/.config/labwc/autostart" <<AUTO
+#!/bin/sh
+# Schule Neckertal Signage - Video-Kiosk-Autostart (mpv, HW-Decode).
+# Pausierbar fuer Wartung: 'kiosk-off' / 'kiosk-on'. video-kiosk.sh laeuft selbst
+# in einer Schleife (Neustart bei Videoaenderung/Absturz).
+( sh "$INSTALL_DIR/bin/video-kiosk.sh" ) &
+AUTO
+else
+  cat > "$USER_HOME/.config/labwc/autostart" <<AUTO
 #!/bin/sh
 # Schule Neckertal Signage - Kiosk-Autostart (labwc/Wayland) mit Watchdog.
 # Pausierbar fuer Wartung: 'kiosk-off' (zum Desktop) / 'kiosk-on' (zurueck).
@@ -275,6 +315,7 @@ rm -rf "\$HOME/.cache/chromium" "\$HOME/.config/chromium/Default/Cache" "\$HOME/
   done
 ) &
 AUTO
+fi
 chmod +x "$USER_HOME/.config/labwc/autostart"
 
 # Wartungsbefehle: Kiosk verlassen / zurueck (fuer Updates am Bildschirm)
@@ -385,8 +426,13 @@ sudo systemctl daemon-reload
 sudo systemctl enable signage-server.service >/dev/null
 sudo systemctl restart signage-server.service   # restart, damit Unit-Aenderungen greifen
 
-# Initiales Rendern ZUERST (vor dem Timer, um Parallelläufe zu vermeiden)
-python3 "$INSTALL_DIR/bin/render-sync.py" || echo "    Initiales Rendern (noch) nicht erfolgreich."
+# Initiales Rendern/Selbst-Update ZUERST (vor dem Timer, um Parallelläufe zu vermeiden)
+python3 "$INSTALL_DIR/bin/render-sync.py" || echo "    Initialer Sync (noch) nicht erfolgreich."
+# Video-Modus: einmal Videos holen (kann durch Transkodierung etwas dauern)
+if [ "$CONTENT_MODE" = "video" ]; then
+  echo "    Video-Sync (initial, kann bei Transkodierung dauern) ..."
+  python3 "$INSTALL_DIR/bin/video-sync.py" || echo "    Video-Sync (noch) nicht erfolgreich."
+fi
 
 # Fallback nur im Folien-Modus, wenn noch kein Inhalt aktiv ist (z. B. offline bei
 # Erstinstallation). Im Video-Modus legt video-sync web/content selbst an.
@@ -403,6 +449,11 @@ sudo systemctl enable --now signage-sync.timer >/dev/null
 sudo systemctl enable --now signage-display.timer >/dev/null
 sudo systemctl enable --now signage-heartbeat.timer >/dev/null
 sudo systemctl enable --now signage-command.timer >/dev/null
+if [ "$CONTENT_MODE" = "video" ]; then
+  sudo systemctl enable --now signage-video.timer >/dev/null
+else
+  sudo systemctl disable --now signage-video.timer >/dev/null 2>&1 || true
+fi
 
 echo
 echo "== Installation abgeschlossen =="
