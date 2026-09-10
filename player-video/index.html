@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Schule Neckertal – Video-Schaukasten</title>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; height: 100%; background: #000; overflow: hidden; }
+  #stage { position: fixed; inset: 0; background: #000; }
+  video {
+    position: absolute; inset: 0; width: 100%; height: 100%;
+    object-fit: contain;            /* nichts abschneiden; Letterbox statt Crop */
+    background: #000;
+  }
+  #msg {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #cbd5e1; font: 500 1.6rem/1.4 system-ui, sans-serif; text-align: center; padding: 2rem;
+  }
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+  <div id="stage"><video id="vid" muted playsinline autoplay></video></div>
+  <div id="msg">Video-Schaukasten wird geladen …</div>
+<script>
+'use strict';
+// Schule Neckertal – Video-Player (Schaukasten).
+// Spielt die Videos einer Playlist in Endlosschleife, stumm, Vollbild, Querformat.
+// Quelle der Playlist:
+//   1) lokal ./content/playlist.json  (auf dem Pi, local-first)  ODER
+//   2) Fallback: der Worker /videos    (Direktbetrieb / Test)
+// Eintragsformat je Video: { name, url }.
+
+const WORKER = 'https://signage-heartbeat.schule-neckertal.workers.dev';
+const LOCAL_PLAYLIST = 'content/playlist.json';
+const REFRESH_MS = 5 * 60 * 1000;      // Playlist alle 5 Min neu holen
+
+const vid = document.getElementById('vid');
+const msg = document.getElementById('msg');
+let playlist = [];
+let idx = 0;
+let sig = '';                          // Signatur der Playlist (erkennt Aenderungen)
+
+function showMsg(t) { msg.textContent = t; msg.hidden = false; }
+function hideMsg() { msg.hidden = true; }
+
+async function fetchPlaylist() {
+  // Erst lokal (Pi), dann Worker.
+  for (const src of [LOCAL_PLAYLIST, WORKER + '/videos']) {
+    try {
+      const r = await fetch(src + (src.includes('?') ? '&' : '?') + 't=' + Date.now(), { cache: 'no-store' });
+      if (!r.ok) continue;
+      const d = await r.json();
+      const list = Array.isArray(d) ? d : (d.videos || []);
+      const vids = list.filter((v) => v && v.url);
+      if (vids.length) return vids;
+    } catch (e) { /* naechste Quelle */ }
+  }
+  return [];
+}
+
+async function refresh(initial) {
+  const vids = await fetchPlaylist();
+  const newSig = vids.map((v) => v.name + ':' + (v.size || '')).join('|');
+  if (newSig !== sig) {
+    sig = newSig;
+    playlist = vids;
+    if (initial || idx >= playlist.length) idx = 0;
+  }
+  if (!playlist.length) {
+    showMsg('Noch keine Videos vorhanden.\nLade ein MP4 in den Schaukasten hoch.');
+  }
+  if (initial && playlist.length) playCurrent();
+}
+
+function playCurrent() {
+  if (!playlist.length) return;
+  idx = idx % playlist.length;
+  const v = playlist[idx];
+  hideMsg();
+  vid.src = v.url;
+  vid.load();
+  vid.play().catch(() => { /* Autoplay stumm ist erlaubt; bei Fehler weiter */ });
+}
+
+function next() {
+  idx = (idx + 1) % Math.max(playlist.length, 1);
+  playCurrent();
+}
+
+// Ein Video zu Ende -> naechstes. Bei nur einem Video: nahtlos wiederholen.
+vid.addEventListener('ended', next);
+// Defektes/fehlendes Video nicht haengen bleiben -> ueberspringen.
+vid.addEventListener('error', () => { setTimeout(next, 1500); });
+// Sicherheitsnetz: wenn ein Video >nicht< startet, nach 20 s weiter.
+let stallGuard = null;
+vid.addEventListener('playing', () => { clearTimeout(stallGuard); });
+vid.addEventListener('loadstart', () => {
+  clearTimeout(stallGuard);
+  stallGuard = setTimeout(next, 20000);
+});
+
+refresh(true);
+setInterval(() => refresh(false), REFRESH_MS);
+</script>
+</body>
+</html>

@@ -32,6 +32,64 @@ export default {
     const path = url.pathname.replace(/\/+$/, '');   // ohne Schraegstrich am Ende
 
     // ----------------------------------------------------------
+    //  Video-Schaukasten (R2-Bucket signage-videos)
+    //  GET /videos        -> { videos: [{name,size,uploaded,url}] } (Playlist)
+    //  GET /video/<name>  -> streamt die Datei (mit Range/Seek-Unterstuetzung)
+    //  Getrennt vom bestehenden System: eigener Bucket, eigene Routen.
+    // ----------------------------------------------------------
+    if (path === '/videos') {
+      if (!env.VIDEOS) return json({ videos: [] });
+      const listed = await env.VIDEOS.list({ limit: 1000 });
+      const vids = (listed.objects || [])
+        .filter((o) => /\.(mp4|webm|mov|m4v)$/i.test(o.key))
+        .sort((a, b) => (a.key > b.key ? 1 : -1))
+        .map((o) => ({
+          name: o.key,
+          size: o.size,
+          uploaded: o.uploaded,
+          url: url.origin + '/video/' + encodeURIComponent(o.key),
+        }));
+      return json({ videos: vids });
+    }
+
+    if (path.startsWith('/video/')) {
+      if (!env.VIDEOS) return resp('kein Bucket', 404);
+      const key = decodeURIComponent(path.slice('/video/'.length));
+      const range = request.headers.get('range');
+      let mm;
+      if (range && (mm = /bytes=(\d*)-(\d*)/.exec(range))) {
+        const head = await env.VIDEOS.head(key);
+        if (!head) return resp('nicht gefunden', 404);
+        const total = head.size;
+        let start = mm[1] ? parseInt(mm[1], 10) : 0;
+        let end = mm[2] ? parseInt(mm[2], 10) : total - 1;
+        if (isNaN(start) || start < 0) start = 0;
+        if (isNaN(end) || end >= total) end = total - 1;
+        if (start > end) {
+          return new Response('range', { status: 416, headers: { ...CORS, 'Content-Range': `bytes */${total}` } });
+        }
+        const obj = await env.VIDEOS.get(key, { range: { offset: start, length: end - start + 1 } });
+        const h = new Headers(CORS);
+        obj.writeHttpMetadata(h);
+        h.set('Content-Type', (obj.httpMetadata && obj.httpMetadata.contentType) || 'video/mp4');
+        h.set('Accept-Ranges', 'bytes');
+        h.set('Content-Range', `bytes ${start}-${end}/${total}`);
+        h.set('Content-Length', String(end - start + 1));
+        h.set('Cache-Control', 'public, max-age=3600');
+        return new Response(obj.body, { status: 206, headers: h });
+      }
+      const obj = await env.VIDEOS.get(key);
+      if (!obj) return resp('nicht gefunden', 404);
+      const h = new Headers(CORS);
+      obj.writeHttpMetadata(h);
+      h.set('Content-Type', (obj.httpMetadata && obj.httpMetadata.contentType) || 'video/mp4');
+      h.set('Accept-Ranges', 'bytes');
+      h.set('Content-Length', String(obj.size));
+      h.set('Cache-Control', 'public, max-age=3600');
+      return new Response(obj.body, { status: 200, headers: h });
+    }
+
+    // ----------------------------------------------------------
     //  Fernwartungs-Befehle je Bildschirm (Postfach)
     //  POST /command {playerId, action}  -> legt einen Befehl ab
     //  GET  /command/<playerId>          -> {action, ts} (der Pi pollt das)

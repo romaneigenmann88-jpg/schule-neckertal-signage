@@ -8,3 +8,9 @@ workers_dev = true
 [[kv_namespaces]]
 binding = "HEARTBEATS"
 id = "6d3bb8695e534df9978cac74b4d7022b"
+
+# Video-Bucket fuer den Schaukasten-Bildschirm. Der Worker listet ihn (/videos)
+# und liefert die Dateien aus (/video/<name>) - eine Domain, kein r2.dev noetig.
+[[r2_buckets]]
+binding = "VIDEOS"
+bucket_name = "signage-videos"
