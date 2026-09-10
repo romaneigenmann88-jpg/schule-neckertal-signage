@@ -68,10 +68,31 @@ async function main() {
     } catch (e) { /* überspringen */ }
   }
   if (!container.children.length) $('empty').hidden = false;
+  knownGroups = new Set(index.groups);
+  renderOthers(beats);
 }
 
 // Gemerkter Zustand je Gruppe: { m (Manifest+Live), players, el (Karten-Element) }.
 const state = {};
+let knownGroups = new Set();
+
+// Bildschirme, die zu KEINER bekannten Gruppe gehoeren (z. B. der Video-Schaukasten,
+// der kein Google-Slides-Manifest hat), separat anzeigen - sonst waeren sie unsichtbar.
+function renderOthers(beats) {
+  const el = $('others');
+  if (!el) return;
+  const groups = [];
+  for (const gid in (beats || {})) {
+    if (knownGroups.has(gid)) continue;
+    groups.push([gid, beats[gid]]);
+  }
+  if (!groups.length) { el.innerHTML = ''; return; }
+  el.innerHTML = groups.sort((a, b) => (a[0] > b[0] ? 1 : -1)).map(([gid, players]) =>
+    `<div class="card"><div class="body"><h2>${esc(gid || '(ohne Gruppe)')}</h2>` +
+    `<div class="sub">Weiterer Bildschirm (nicht Google-Slides)</div>` +
+    `${liveStatusHtml(players, null, null)}</div></div>`
+  ).join('');
+}
 
 // Karte einer Gruppe neu zeichnen (nach dem Speichern), damit z. B. die
 // Zeitplan-Zusammenfassung sofort den gespeicherten Stand zeigt.
@@ -151,10 +172,12 @@ function liveStatusHtml(players, currentVersion, sollFolien) {
     const net = p.ip
       ? ` · ${netIcon} ${esc(p.ip)}${p.conn ? ' ' + esc(p.conn) : ''}${(p.conn === 'WLAN' && p.ssid) ? ' (' + esc(p.ssid) + ')' : ''}`
       : '';
-    // Display-Frische: Bild lebt (Browser fragt an) oder haengt?
+    const isVideo = p.mode === 'video';
+    // Display-Frische: Bild lebt oder haengt? (Video: laeuft mpv?)
     const df = p.displayFreshSec;
     const disp = (online && typeof df === 'number')
-      ? (df < 0 || df > 300 ? ' · ⚠️ Bild steht?' : ' · 🖥 Bild aktiv')
+      ? (df < 0 || df > 300 ? (isVideo ? ' · ⚠️ Player steht?' : ' · ⚠️ Bild steht?')
+                            : (isVideo ? ' · 🎬 läuft' : ' · 🖥 Bild aktiv'))
       : '';
     // Inhalts-Nachschub: laeuft render-sync noch? (Browser kann laufen, waehrend
     // der Inhalt laengst nicht mehr nachgeliefert wird - genau der OZN-Fall.)
@@ -169,21 +192,25 @@ function liveStatusHtml(players, currentVersion, sollFolien) {
       : effSync === null ? ''
       : effSync > 2700 ? ` · ⚠️ kein Inhalts-Sync seit ${fmtAge(effSync)}`
       : ` · 🔄 Sync vor ${fmtAge(effSync)}`;
-    // Wann wurde der Inhalt dieses Bildschirms zuletzt neu erzeugt?
-    const inhalt = p.contentChangedAt ? ` · 📄 Folien geändert: ${fmtDate(p.contentChangedAt)}`
-      : (p.version ? ` · 📄 aufbereitet: ${fmtDate(p.version)}` : '');
-    // Zeigt der Bildschirm auch WIRKLICH so viele Folien wie die Gruppe (Soll)?
-    // Weicht es ab, haengt dieser Bildschirm auf einem alten Stand.
-    // ACHTUNG: Die Soll-Zahl stammt von GitHub Pages, das oft 20+ Min hinterher
-    // ist (der geplante Workflow laeuft unzuverlaessig). Der Pi rendert selbst
-    // und ist dann SCHNELLER als die Vergleichsquelle - das ist kein Fehler.
-    // Nur warnen, wenn der Pi-Inhalt AELTER als der Pages-Stand ist.
+    // Wann wurde der Inhalt zuletzt geaendert?
     const sc = p.slideCount;
-    const piAelter = p.version && currentVersion && Date.parse(p.version) < Date.parse(currentVersion);
-    const folien = (typeof sc !== 'number' || sc < 0) ? ''
-      : (piAelter && typeof sollFolien === 'number' && sollFolien > 0 && sc !== sollFolien)
-        ? ` · <span class="warn-slides">🖼 zeigt ${sc} statt ${sollFolien} Folien!</span>`
-        : ` · 🖼 ${sc} Folien`;
+    const inhalt = isVideo
+      ? (p.contentChangedAt ? ` · 📼 zuletzt geändert: ${fmtDate(p.contentChangedAt)}` : '')
+      : (p.contentChangedAt ? ` · 📄 Folien geändert: ${fmtDate(p.contentChangedAt)}`
+         : (p.version ? ` · 📄 aufbereitet: ${fmtDate(p.version)}` : ''));
+    // Anzahl Videos (Video) bzw. Folien-Soll-Ist (Folien).
+    let folien = '';
+    if (isVideo) {
+      folien = (typeof sc === 'number' && sc >= 0) ? ` · 🎬 ${sc} Video${sc === 1 ? '' : 's'}` : '';
+    } else {
+      // Soll-Zahl (GitHub Pages) ist oft 20+ Min hinterher -> nur warnen, wenn der
+      // Pi-Inhalt AELTER als der Pages-Stand ist, sonst schlicht die Zahl zeigen.
+      const piAelter = p.version && currentVersion && Date.parse(p.version) < Date.parse(currentVersion);
+      folien = (typeof sc !== 'number' || sc < 0) ? ''
+        : (piAelter && typeof sollFolien === 'number' && sollFolien > 0 && sc !== sollFolien)
+          ? ` · <span class="warn-slides">🖼 zeigt ${sc} statt ${sollFolien} Folien!</span>`
+          : ` · 🖼 ${sc} Folien`;
+    }
     return `<div class="pl">${dot} <strong>${esc(p.playerId)}</strong> · ${online ? 'online' : 'offline'} · zuletzt ${relTime(seen)}${net}${folien}${disp}${sync}${inhalt}
       <span class="cmds" title="Fernwartung – der Bildschirm fuehrt es in ca. 20 Sek. aus">
         <button class="cmd-btn" data-pid="${pid}" data-action="kiosk-off">Kiosk verlassen</button>
@@ -211,6 +238,7 @@ async function refreshLiveStatus() {
     const ls = st.el.querySelector('.livestatus');
     if (ls) ls.outerHTML = liveStatusHtml(st.players, st.m.version, ((st.m.baseLayer && st.m.baseLayer.slides) || []).length);
   }
+  renderOthers(beats);
 }
 // Seltener abfragen und im Hintergrund pausieren: jede Abfrage kostet
 // Cloudflare-Kontingent, und der Routine-Heartbeat kommt ohnehin nur alle ~30 Min.

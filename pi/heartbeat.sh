@@ -14,14 +14,25 @@ PID=$(read_json "$DEV" playerId)
 
 NOW=$(date +%s)
 
-VER=$(read_json "$MAN" version)
-GID=$(read_json "$MAN" groupId)
-# Wie viele Folien zeigt DIESER Bildschirm gerade? (Soll-Vergleich in der Konsole)
-SLIDES=$(python3 -c "import json;print(len(json.load(open('$MAN')).get('baseLayer',{}).get('slides',[])))" 2>/dev/null || echo -1)
-case "$SLIDES" in ''|*[!0-9]*) SLIDES=-1 ;; esac
-# Fingerabdruck der sichtbaren Folien: aendert sich NUR bei echter
-# Inhaltsaenderung (nicht bei blossem Neu-Rendern).
-CHASH=$(read_json "$MAN" contentHash)
+MODE=$(read_json "$DEV" mode); [ -n "$MODE" ] || MODE="slides"
+# Gruppe aus device.json (im Video-Modus gibt es kein Manifest); Fallback Manifest.
+GID=$(read_json "$DEV" groupId); [ -n "$GID" ] || GID=$(read_json "$MAN" groupId)
+
+if [ "$MODE" = "video" ]; then
+  # Video-Schaukasten: keine Folien. Anzahl Videos + Signatur aus der Playlist.
+  M3U="/opt/school-signage/web/content/playlist.m3u"
+  VER=""
+  SLIDES=$(grep -vc '^#' "$M3U" 2>/dev/null || echo -1)
+  case "$SLIDES" in ''|*[!0-9]*) SLIDES=-1 ;; esac
+  CHASH=$(md5sum "$M3U" 2>/dev/null | cut -d' ' -f1)   # aendert sich bei Videowechsel
+else
+  VER=$(read_json "$MAN" version)
+  # Wie viele Folien zeigt DIESER Bildschirm gerade? (Soll-Vergleich in der Konsole)
+  SLIDES=$(python3 -c "import json;print(len(json.load(open('$MAN')).get('baseLayer',{}).get('slides',[])))" 2>/dev/null || echo -1)
+  case "$SLIDES" in ''|*[!0-9]*) SLIDES=-1 ;; esac
+  # Fingerabdruck der sichtbaren Folien (echte Inhaltsaenderung).
+  CHASH=$(read_json "$MAN" contentHash)
+fi
 
 # Klemmt die Sync-Sperre? (fruehe Ermittlung, fliesst in die Meldeentscheidung)
 LOCK="/opt/school-signage/data/.sync.lock"
@@ -85,8 +96,17 @@ LASTSYNC=$(journalctl -u signage-sync.service -o short-unix --since "-24h" 2>/de
            | grep -E "Keine Aenderung|Aktiv geschaltet" | tail -1 | cut -d. -f1)
 case "$LASTSYNC" in ''|*[!0-9]*) SYNC_AGE=-1 ;; *) SYNC_AGE=$((NOW - LASTSYNC)) ;; esac
 
+if [ "$MODE" = "video" ]; then
+  # Im Video-Modus ist mpv der Player (kein Browser, kein render-sync-Inhalt).
+  # "Bild lebt" = mpv laeuft. Sync-Alter kommt vom Video-Dienst.
+  pgrep mpv >/dev/null 2>&1 && DISPLAY_FRESH=0 || DISPLAY_FRESH=99999
+  LASTSYNC=$(journalctl -u signage-video.service -o short-unix --since "-24h" 2>/dev/null \
+             | grep -F "spielbereit" | tail -1 | cut -d. -f1)
+  case "$LASTSYNC" in ''|*[!0-9]*) SYNC_AGE=-1 ;; *) SYNC_AGE=$((NOW - LASTSYNC)) ;; esac
+fi
+
 if curl -4 -fsS -m 15 -X POST -H "Content-Type: application/json" \
-  -d "{\"playerId\":\"${PID}\",\"groupId\":\"${GID}\",\"version\":\"${VER}\",\"hostname\":\"$(hostname)\",\"ip\":\"${IP}\",\"conn\":\"${CONN}\",\"iface\":\"${IFACE}\",\"ssid\":\"${SSID}\",\"displayFreshSec\":${DISPLAY_FRESH},\"syncAgeSec\":${SYNC_AGE},\"syncStuck\":${SYNC_STUCK},\"slideCount\":${SLIDES},\"contentHash\":\"${CHASH}\"}" \
+  -d "{\"playerId\":\"${PID}\",\"groupId\":\"${GID}\",\"version\":\"${VER}\",\"hostname\":\"$(hostname)\",\"ip\":\"${IP}\",\"conn\":\"${CONN}\",\"iface\":\"${IFACE}\",\"ssid\":\"${SSID}\",\"displayFreshSec\":${DISPLAY_FRESH},\"syncAgeSec\":${SYNC_AGE},\"syncStuck\":${SYNC_STUCK},\"slideCount\":${SLIDES},\"contentHash\":\"${CHASH}\",\"mode\":\"${MODE}\"}" \
   "$HB" >/dev/null 2>&1; then
   echo "$NOW" > "$STAMP"          # nur bei Erfolg als gesendet merken
   printf '%s' "$SUMMARY" > "$SUMFILE"

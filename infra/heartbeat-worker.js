@@ -192,7 +192,8 @@ export default {
         displayFreshSec: Number.isFinite(+body.displayFreshSec) ? Math.trunc(+body.displayFreshSec) : null, // Sek. seit letzter Browser-Anfrage (Bild lebt?)
         syncAgeSec: Number.isFinite(+body.syncAgeSec) ? Math.trunc(+body.syncAgeSec) : null,               // Sek. seit letztem erfolgreichen render-sync
         syncStuck: body.syncStuck ? 1 : 0,                                                                  // 1 = Sync-Sperre haengt fest
-        slideCount: Number.isFinite(+body.slideCount) ? Math.trunc(+body.slideCount) : null,                // Folien, die dieser Bildschirm zeigt
+        slideCount: Number.isFinite(+body.slideCount) ? Math.trunc(+body.slideCount) : null,                // Folien bzw. (Video-Modus) Anzahl Videos
+        mode: String(body.mode || 'slides').slice(0, 10),                                                   // slides | video
         contentHash: String(body.contentHash || '').slice(0, 80),                                           // Fingerabdruck der sichtbaren Folien
         lastSeen: new Date().toISOString(),
       };
