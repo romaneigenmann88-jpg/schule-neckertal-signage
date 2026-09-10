@@ -37,6 +37,11 @@ export default {
     //  GET /video/<name>  -> streamt die Datei (mit Range/Seek-Unterstuetzung)
     //  Getrennt vom bestehenden System: eigener Bucket, eigene Routen.
     // ----------------------------------------------------------
+    // Passwortgeschuetzte Upload-Seite (Video hochladen/loeschen ohne Cloudflare-Login)
+    if (path === '/uploader' || path === '/upload') {
+      return new Response(uploaderPage(), { headers: { ...CORS, 'Content-Type': 'text/html; charset=utf-8' } });
+    }
+
     if (path === '/videos') {
       if (!env.VIDEOS) return json({ videos: [] });
       const listed = await env.VIDEOS.list({ limit: 1000 });
@@ -55,6 +60,26 @@ export default {
     if (path.startsWith('/video/')) {
       if (!env.VIDEOS) return resp('kein Bucket', 404);
       const key = decodeURIComponent(path.slice('/video/'.length));
+
+      // Hochladen (PUT) / Loeschen (DELETE): passwortgeschuetzt (Worker-Secret
+      // UPLOAD_PW; per 'wrangler secret put UPLOAD_PW' setzen). GET bleibt offen
+      // (der Pi muss die Videos token-frei laden koennen).
+      if (request.method === 'PUT' || request.method === 'DELETE') {
+        if (!env.UPLOAD_PW || request.headers.get('x-upload-password') !== env.UPLOAD_PW) {
+          return resp('Passwort falsch oder nicht gesetzt', 401);
+        }
+        const safe = key.replace(/[\\/]/g, '').replace(/^\.+/, '');
+        if (!safe) return resp('ungueltiger Name', 400);
+        if (request.method === 'DELETE') {
+          await env.VIDEOS.delete(safe);
+          return json({ ok: true, deleted: safe });
+        }
+        if (!/\.(mp4|webm|mov|m4v)$/i.test(safe)) return resp('nur Video-Dateien (.mp4 …)', 400);
+        const ct = request.headers.get('content-type') || 'video/mp4';
+        await env.VIDEOS.put(safe, request.body, { httpMetadata: { contentType: ct } });
+        return json({ ok: true, name: safe });
+      }
+
       const range = request.headers.get('range');
       let mm;
       if (range && (mm = /bytes=(\d*)-(\d*)/.exec(range))) {
@@ -260,6 +285,81 @@ async function appendEvents(env, playerId, groupId, events) {
   }
   log.events = log.events.slice(0, 200);
   await env.HEARTBEATS.put('log:events', JSON.stringify(log));
+}
+
+// Passwortgeschuetzte Upload-Seite (vom Worker ausgeliefert, gleiche Domain).
+// Inline-JS bewusst OHNE Template-Literals/${...}, damit es nicht mit diesem
+// aeusseren Template-String kollidiert.
+function uploaderPage() {
+  return `<!doctype html><html lang="de"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Schaukasten – Videos</title>
+<style>
+  :root{color-scheme:light dark}
+  body{font:16px/1.5 system-ui,sans-serif;max-width:680px;margin:0 auto;padding:1.2rem;background:#0b1020;color:#e5e7eb}
+  h1{font-size:1.3rem} h2{font-size:1.05rem;margin-top:1.6rem}
+  input[type=password]{padding:.5rem;border-radius:8px;border:1px solid #475569;background:#111827;color:#e5e7eb;width:100%;max-width:280px}
+  #drop{margin:1rem 0;padding:2rem 1rem;border:2px dashed #64748b;border-radius:14px;text-align:center;cursor:pointer;background:#111827}
+  #drop.over{border-color:#22d3ee;background:#0e2130}
+  #status{margin:.8rem 0;min-height:1.4em;color:#93c5fd}
+  ul{list-style:none;padding:0} li{padding:.5rem .2rem;border-bottom:1px solid #334155;display:flex;justify-content:space-between;gap:.5rem;align-items:center}
+  button{padding:.4rem .7rem;border-radius:8px;border:1px solid #64748b;background:#1f2937;color:#e5e7eb;cursor:pointer}
+  .hint{color:#94a3b8;font-size:.9rem}
+</style></head><body>
+<h1>🎬 Schaukasten – Videos</h1>
+<p class="hint">Passwort eingeben, dann Videos hochladen. Sie erscheinen in wenigen Minuten am Bildschirm (grosse Videos werden automatisch auf 720p gebracht). Reihenfolge nach Dateiname (z.&nbsp;B. 01-…, 02-…).</p>
+<label>Passwort<br><input type="password" id="pw" placeholder="Upload-Passwort"></label>
+<div id="drop">Video hierher ziehen &nbsp;·&nbsp; oder klicken zum Auswählen</div>
+<input type="file" id="file" accept="video/*" multiple hidden>
+<div id="status"></div>
+<h2>Aktuelle Videos</h2>
+<ul id="list"></ul>
+<script>
+'use strict';
+var pwEl=document.getElementById('pw');
+pwEl.value=localStorage.getItem('schaukasten_pw')||'';
+pwEl.addEventListener('change',function(){localStorage.setItem('schaukasten_pw',pwEl.value);});
+function st(t){document.getElementById('status').textContent=t;}
+function mb(b){return (b/1048576).toFixed(1)+' MB';}
+function loadList(){
+  fetch('/videos?t='+Date.now()).then(function(r){return r.json();}).then(function(d){
+    var ul=document.getElementById('list');ul.innerHTML='';
+    var vs=d.videos||[];
+    if(!vs.length){ul.innerHTML='<li>Noch keine Videos.</li>';return;}
+    vs.forEach(function(v){
+      var li=document.createElement('li');
+      var s=document.createElement('span');s.textContent=v.name+'  ('+mb(v.size||0)+')';
+      var b=document.createElement('button');b.textContent='löschen';
+      b.onclick=function(){delVid(v.name);};
+      li.appendChild(s);li.appendChild(b);ul.appendChild(li);
+    });
+  }).catch(function(){st('Liste nicht erreichbar.');});
+}
+function delVid(name){
+  if(!confirm('Löschen: '+name+' ?'))return;
+  fetch('/video/'+encodeURIComponent(name),{method:'DELETE',headers:{'x-upload-password':pwEl.value}})
+   .then(function(r){if(!r.ok)throw 0;st('Gelöscht: '+name);loadList();})
+   .catch(function(){st('Löschen fehlgeschlagen – Passwort?');});
+}
+function upload(file){
+  var x=new XMLHttpRequest();
+  x.open('PUT','/video/'+encodeURIComponent(file.name));
+  x.setRequestHeader('x-upload-password',pwEl.value);
+  x.setRequestHeader('content-type',file.type||'video/mp4');
+  x.upload.onprogress=function(e){if(e.lengthComputable)st('Lade '+file.name+' … '+Math.round(e.loaded/e.total*100)+'%');};
+  x.onload=function(){if(x.status===200){st('✓ Hochgeladen: '+file.name+' – erscheint in wenigen Minuten.');loadList();}else if(x.status===401){st('Passwort falsch oder nicht gesetzt.');}else{st('Upload-Fehler ('+x.status+').');}};
+  x.onerror=function(){st('Upload-Fehler (Netzwerk).');};
+  x.send(file);
+}
+function handle(files){for(var i=0;i<files.length;i++)upload(files[i]);}
+var f=document.getElementById('file'),d=document.getElementById('drop');
+d.onclick=function(){f.click();};
+f.onchange=function(){handle(f.files);};
+d.ondragover=function(e){e.preventDefault();d.classList.add('over');};
+d.ondragleave=function(){d.classList.remove('over');};
+d.ondrop=function(e){e.preventDefault();d.classList.remove('over');handle(e.dataTransfer.files);};
+loadList();
+</script></body></html>`;
 }
 
 function resp(text, status) {
