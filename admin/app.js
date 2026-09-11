@@ -87,11 +87,16 @@ function renderOthers(beats) {
     groups.push([gid, beats[gid]]);
   }
   if (!groups.length) { el.innerHTML = ''; return; }
-  el.innerHTML = groups.sort((a, b) => (a[0] > b[0] ? 1 : -1)).map(([gid, players]) =>
-    `<div class="card"><div class="body"><h2>${esc(gid || '(ohne Gruppe)')}</h2>` +
-    `<div class="sub">Weiterer Bildschirm (nicht Google-Slides)</div>` +
-    `${liveStatusHtml(players, null, null)}</div></div>`
-  ).join('');
+  el.innerHTML = groups.sort((a, b) => (a[0] > b[0] ? 1 : -1)).map(([gid, players]) => {
+    // Video-Schaukasten? Dann Direktlink zur Uploader-Seite anbieten (analog "Folien").
+    const isVideo = (players || []).some((p) => p.mode === 'video');
+    const actions = isVideo
+      ? `<div class="actions"><a class="btn edit" href="${esc(HEARTBEAT_URL)}/uploader" target="_blank" rel="noopener">📤 Uploader</a></div>`
+      : '';
+    return `<div class="card"><div class="body"><h2>${esc(gid || '(ohne Gruppe)')}</h2>` +
+      `<div class="sub">${isVideo ? 'Video-Schaukasten' : 'Weiterer Bildschirm (nicht Google-Slides)'}</div>` +
+      `${liveStatusHtml(players, null, null)}${actions}</div></div>`;
+  }).join('');
 }
 
 // Karte einer Gruppe neu zeichnen (nach dem Speichern), damit z. B. die
