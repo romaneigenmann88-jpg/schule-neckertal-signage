@@ -1,7 +1,7 @@
 {
   "groupId": "PRIMAR_STPETERZELL",
   "title": "Primarschule St. Peterzell",
-  "version": "2026-09-25T12:19:40Z",
+  "version": "2026-09-28T14:31:02Z",
   "sourceHash": "4ead2058ddb4978d13857f070a7c56539651bbb6bdec37296ad61632c0cdc784",
   "players": [],
   "editUrl": "https://docs.google.com/presentation/d/1x5QOSZ25ToPey4bUF3S9X-VVjIIoQ7BAmAGDqXguBsM/edit",
@@ -44,37 +44,37 @@
     "type": "renderedPowerPoint",
     "slides": [
       {
-        "file": "slides/2026-09-25T12-19-40Z/slide-001.png",
+        "file": "slides/2026-09-28T14-31-02Z/slide-001.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 1
       },
       {
-        "file": "slides/2026-09-25T12-19-40Z/slide-002.png",
+        "file": "slides/2026-09-28T14-31-02Z/slide-002.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 2
       },
       {
-        "file": "slides/2026-09-25T12-19-40Z/slide-003.png",
+        "file": "slides/2026-09-28T14-31-02Z/slide-003.png",
         "durationSeconds": 15,
         "sourceSlideNumber": 3
       },
       {
-        "file": "slides/2026-09-25T12-19-40Z/slide-004.png",
+        "file": "slides/2026-09-28T14-31-02Z/slide-004.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 4
       },
       {
-        "file": "slides/2026-09-25T12-19-40Z/slide-006.png",
+        "file": "slides/2026-09-28T14-31-02Z/slide-006.png",
         "durationSeconds": 12,
         "sourceSlideNumber": 6
       },
       {
-        "file": "slides/2026-09-25T12-19-40Z/slide-011.png",
+        "file": "slides/2026-09-28T14-31-02Z/slide-011.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 11
       },
       {
-        "file": "slides/2026-09-25T12-19-40Z/slide-013.png",
+        "file": "slides/2026-09-28T14-31-02Z/slide-013.png",
         "durationSeconds": 12,
         "sourceSlideNumber": 13
       }
