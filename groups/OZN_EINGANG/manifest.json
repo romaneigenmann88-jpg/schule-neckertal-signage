@@ -1,8 +1,8 @@
 {
   "groupId": "OZN_EINGANG",
   "title": "OZN - Eingang",
-  "version": "2026-10-12T18:12:38Z",
-  "sourceHash": "11d0bc9554c6ca2f7a383f83b3aee23b0ac25a2d1a8547c8e1195800560db818",
+  "version": "2026-10-13T15:04:25Z",
+  "sourceHash": "759a8dd3518ef778a2434735de422f965c1debfff46c5e3f3f4a0ecd90e01410",
   "players": [],
   "editUrl": "https://docs.google.com/presentation/d/19EblEGCgJMU3d0cDFhI-g8kuOm_u15bxg-7b01cB9Dg/edit",
   "defaultSlideDurationSeconds": 12,
@@ -44,17 +44,27 @@
     "type": "renderedPowerPoint",
     "slides": [
       {
-        "file": "slides/2026-10-12T18-12-38Z/slide-002.png",
+        "file": "slides/2026-10-13T15-04-25Z/slide-002.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 2
       },
       {
-        "file": "slides/2026-10-12T18-12-38Z/slide-005.png",
+        "file": "slides/2026-10-13T15-04-25Z/slide-003.png",
+        "durationSeconds": 7,
+        "sourceSlideNumber": 3
+      },
+      {
+        "file": "slides/2026-10-13T15-04-25Z/slide-004.png",
+        "durationSeconds": 7,
+        "sourceSlideNumber": 4
+      },
+      {
+        "file": "slides/2026-10-13T15-04-25Z/slide-005.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 5
       },
       {
-        "file": "slides/2026-10-12T18-12-38Z/slide-006.png",
+        "file": "slides/2026-10-13T15-04-25Z/slide-006.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 6
       }
