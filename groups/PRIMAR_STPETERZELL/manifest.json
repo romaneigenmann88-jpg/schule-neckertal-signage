@@ -1,7 +1,7 @@
 {
   "groupId": "PRIMAR_STPETERZELL",
   "title": "Primarschule St. Peterzell",
-  "version": "2026-10-13T15:04:25Z",
+  "version": "2026-10-20T10:10:54Z",
   "sourceHash": "5ce81290ce2916803d4cfc4f4f1d07c7aa3cfc13c1f11ceef6d5791f03f0c57f",
   "players": [],
   "editUrl": "https://docs.google.com/presentation/d/1x5QOSZ25ToPey4bUF3S9X-VVjIIoQ7BAmAGDqXguBsM/edit",
@@ -44,47 +44,47 @@
     "type": "renderedPowerPoint",
     "slides": [
       {
-        "file": "slides/2026-10-13T15-04-25Z/slide-001.png",
+        "file": "slides/2026-10-20T10-10-54Z/slide-001.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 1
       },
       {
-        "file": "slides/2026-10-13T15-04-25Z/slide-002.png",
+        "file": "slides/2026-10-20T10-10-54Z/slide-002.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 2
       },
       {
-        "file": "slides/2026-10-13T15-04-25Z/slide-003.png",
+        "file": "slides/2026-10-20T10-10-54Z/slide-003.png",
         "durationSeconds": 15,
         "sourceSlideNumber": 3
       },
       {
-        "file": "slides/2026-10-13T15-04-25Z/slide-004.png",
+        "file": "slides/2026-10-20T10-10-54Z/slide-004.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 4
       },
       {
-        "file": "slides/2026-10-13T15-04-25Z/slide-005.png",
+        "file": "slides/2026-10-20T10-10-54Z/slide-005.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 5
       },
       {
-        "file": "slides/2026-10-13T15-04-25Z/slide-006.png",
+        "file": "slides/2026-10-20T10-10-54Z/slide-006.png",
         "durationSeconds": 12,
         "sourceSlideNumber": 6
       },
       {
-        "file": "slides/2026-10-13T15-04-25Z/slide-011.png",
+        "file": "slides/2026-10-20T10-10-54Z/slide-011.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 11
       },
       {
-        "file": "slides/2026-10-13T15-04-25Z/slide-012.png",
+        "file": "slides/2026-10-20T10-10-54Z/slide-012.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 12
       },
       {
-        "file": "slides/2026-10-13T15-04-25Z/slide-014.png",
+        "file": "slides/2026-10-20T10-10-54Z/slide-014.png",
         "durationSeconds": 12,
         "sourceSlideNumber": 14
       }
