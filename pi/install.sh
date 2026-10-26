@@ -420,6 +420,12 @@ else
   sudo rm -f /etc/systemd/system/signage-reboot.timer /etc/systemd/system/signage-reboot.service
 fi
 
+# Automatische Sicherheitsupdates (nur Debian-Sicherheitskanal) jede Nacht um 02:30,
+# vor dem taeglichen Reboot. Kernel/Chromium/Firmware bleiben manuell (pi/full-upgrade.sh).
+echo "    Automatische Sicherheitsupdates einrichten ..."
+sudo sh "$REPO_ROOT/pi/setup-auto-security-updates.sh" | sed 's/^/    /' \
+  || echo "    WARNUNG: Einrichtung der Sicherheitsupdates fehlgeschlagen - spaeter erneut: sudo sh pi/setup-auto-security-updates.sh"
+
 # ---------- 10. Dienste aktivieren + initialer Sync ----------
 echo "[10/10] Dienste aktivieren + initialer Sync ..."
 sudo systemctl daemon-reload
