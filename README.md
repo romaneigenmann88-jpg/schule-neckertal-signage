@@ -66,6 +66,13 @@ Zum Vergleich: Zwischen Inbetriebnahme (Juni 2026) und erstem Voll-Update (26.10
 
 ## Changelog
 
+### 2026-10-27 — WLAN auf allen Pis ausgeschaltet
+
+- **Anlass**: Ein STP-Bildschirm zeigte über dem Kiosk die Abfrage „Authentication required by Wi-Fi network ‚Intune'". Ursache: ein beim Einrichten (Raspberry Pi Imager) angelegtes WLAN-Profil ohne gespeichertes Passwort; die Taskleiste `wf-panel-pi` fragt dann nach dem Passwort
+- **Befund auf allen 5 Pis**: Alle hängen am Kabel. Drei hatten zusätzlich WLAN-Profile — einer scheiterte am fehlenden Passwort (die Abfrage), einer an der Verbindung (nächster Kandidat), zwei waren **gleichzeitig per Kabel und WLAN im selben Netz** verbunden — vermutlich Ursache für die wacklige SSH-Erreichbarkeit dieser beiden
+- **Massnahme**: WLAN-Funk auf allen 5 Pis aus (`nmcli radio wifi off`, bleibt über Neustarts erhalten). Bei den zwei aktiv per WLAN verbundenen Pis mit 5-Minuten-Rückfall-Timer, der erst nach erfolgreicher Prüfung über das Kabel entschärft wurde. Danach überall: Route nur über `eth0`, Internet erreichbar, Kiosk läuft
+- **Wieder einschalten** (falls ein Pi einmal per WLAN betrieben werden soll): `sudo nmcli radio wifi on`
+
 ### 2026-10-26 — Voll-Update aller Pis + automatische Sicherheitsupdates
 
 - **Alle 5 Pis voll aktualisiert** (erstes Update seit Inbetriebnahme, je ~430 Pakete): Kernel 6.18.50, Chromium 155, `ca-certificates 20250419+deb13u1`. Anlass: kompromittierte eMudhra-Zwischenzertifikate (Okt. 2026) — das Debian-Sicherheitsupdate entfernt „emSign ECC Root CA - G3" und „Comodo AAA". Vorgehen: zuerst ein Pi als Test, dann die übrigen; alle fehlerfrei, alle Bildschirme danach geprüft
