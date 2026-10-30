@@ -1,7 +1,7 @@
 {
   "groupId": "OZN_EINGANG",
   "title": "OZN - Eingang",
-  "version": "2026-10-29T16:01:16Z",
+  "version": "2026-10-30T13:42:41Z",
   "sourceHash": "7535a8afd3aa7894d7101a8c089ff5e0c049b48f11778d0078dd52325c8ab343",
   "players": [],
   "editUrl": "https://docs.google.com/presentation/d/19EblEGCgJMU3d0cDFhI-g8kuOm_u15bxg-7b01cB9Dg/edit",
@@ -44,22 +44,22 @@
     "type": "renderedPowerPoint",
     "slides": [
       {
-        "file": "slides/2026-10-29T16-01-16Z/slide-003.png",
+        "file": "slides/2026-10-30T13-42-41Z/slide-003.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 3
       },
       {
-        "file": "slides/2026-10-29T16-01-16Z/slide-004.png",
+        "file": "slides/2026-10-30T13-42-41Z/slide-004.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 4
       },
       {
-        "file": "slides/2026-10-29T16-01-16Z/slide-005.png",
+        "file": "slides/2026-10-30T13-42-41Z/slide-005.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 5
       },
       {
-        "file": "slides/2026-10-29T16-01-16Z/slide-006.png",
+        "file": "slides/2026-10-30T13-42-41Z/slide-006.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 6
       }
