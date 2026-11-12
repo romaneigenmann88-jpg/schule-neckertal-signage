@@ -1,8 +1,8 @@
 {
   "groupId": "STPETERZELL_EINGANG",
   "title": "St. Peterzell - Eingang",
-  "version": "2026-11-12T11:51:25Z",
-  "sourceHash": "4d2a91004acf5ce3032904412200f6f8d4168fb3334f5780e52a7e9749bab1e9",
+  "version": "2026-11-12T19:27:39Z",
+  "sourceHash": "d1002458838832fa359deffb0ae3a69e7737c9e002911164ebd5bca7fcbf2e37",
   "players": [],
   "editUrl": "https://docs.google.com/presentation/d/1kuY1Fun8uBMWQs4IZnuNqXlE1EhJGnCE4D4A78VuMis/edit",
   "defaultSlideDurationSeconds": 12,
@@ -44,19 +44,24 @@
     "type": "renderedPowerPoint",
     "slides": [
       {
-        "file": "slides/2026-11-12T11-51-25Z/slide-001.png",
+        "file": "slides/2026-11-12T19-27-39Z/slide-001.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 1
       },
       {
-        "file": "slides/2026-11-12T11-51-25Z/slide-002.png",
+        "file": "slides/2026-11-12T19-27-39Z/slide-002.png",
         "durationSeconds": 7,
         "sourceSlideNumber": 2
       },
       {
-        "file": "slides/2026-11-12T11-51-25Z/slide-003.png",
+        "file": "slides/2026-11-12T19-27-39Z/slide-003.png",
         "durationSeconds": 20,
         "sourceSlideNumber": 3
+      },
+      {
+        "file": "slides/2026-11-12T19-27-39Z/slide-004.png",
+        "durationSeconds": 80,
+        "sourceSlideNumber": 4
       }
     ]
   },
